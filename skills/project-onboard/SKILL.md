@@ -1,0 +1,504 @@
+---
+name: project-onboard
+description: >
+  Onboard an AI agent into any project — detect stack, research up-to-date docs,
+  audit features (Page→API→DB mapping), interview the developer, and generate
+  structured context files with task-based routing so the agent never wastes time
+  exploring the project again. Use this skill whenever the user says "onboard",
+  "set up context", "scan this project", "generate CLAUDE.md", "map this codebase",
+  "audit features", "what does this project do", or any request to help an AI agent
+  understand a new or existing codebase. Also trigger when the user starts working
+  in an unfamiliar repo and would benefit from structured context generation.
+---
+
+# Project Onboard
+
+A skill that onboards AI agents into any project by generating structured,
+task-routed context files. Unlike `/init` which produces a flat CLAUDE.md,
+this skill creates a progressive disclosure system where the agent reads
+only what it needs for the current task — saving tokens and eliminating
+redundant project exploration.
+
+## Invocation
+
+```
+/onboard                     Full onboard (all phases)
+/onboard --quick             Phase 1+2 only (skip audit & interview)
+/onboard Thai                Full onboard, confirm output language first
+/onboard-update              Incremental update (changed files only)
+/onboard-update --full       Re-scan everything, keep interview answers
+/onboard-audit               Run feature audit only (Phase 3)
+/onboard-audit --update      Update audit for changed files only
+/onboard-suggest             Suggest skills for detected stack
+```
+
+## Language Support
+
+If the user appends a language name to the command (e.g., `/onboard Thai`,
+`/onboard Japanese`), confirm the language before proceeding:
+
+```
+"You requested output in Thai. This will generate all context files
+and CLAUDE.md in Thai. Confirm? (yes/no)"
+```
+
+If confirmed, write ALL output files in that language — CLAUDE.md, context
+files, feature map, everything. The SKILL.md instructions themselves remain
+in English, but generated output respects the user's language choice.
+
+Default language is English if not specified.
+
+## How It Works
+
+The skill runs 4 phases. Each phase builds on the previous one.
+The agent knows more at each step, so later phases are smarter.
+
+```
+Phase 1: DISCOVER .......... auto-detect stack + research docs
+Phase 2: GENERATE .......... create CLAUDE.md + context files
+Phase 3: FEATURE AUDIT ..... map Page → API → DB → Feature (optional)
+Phase 4: INTERVIEW ......... ask the developer (knows everything now)
+```
+
+Phase 3 and 4 are optional. After Phase 2, ask the user:
+- "Want me to audit existing features? (maps pages, endpoints, DB)"
+- "Want me to interview you for business context?"
+
+If the user runs `/onboard --quick`, skip Phase 3 and 4.
+
+---
+
+## Phase 1: DISCOVER
+
+Two sub-phases. Do not ask the user anything during this phase.
+
+### Phase 1a: DETECT
+
+Read project files to identify the tech stack and tooling.
+Do NOT use `find` or `ls` recursively. Read specific known files only.
+
+Check these files (skip if they don't exist):
+
+**Package managers & stack:**
+- `package.json` → Node.js ecosystem, framework, dependencies, scripts
+- `pubspec.yaml` → Flutter/Dart
+- `go.mod` → Go
+- `requirements.txt` / `pyproject.toml` / `Pipfile` → Python
+- `Cargo.toml` → Rust
+- `composer.json` → PHP
+- `Gemfile` → Ruby
+
+**Configuration:**
+- `tsconfig.json` → TypeScript settings
+- `.eslintrc*` / `biome.json` / `.prettierrc` → linting/formatting
+- `docker-compose.yml` / `Dockerfile` → containerization
+- `vercel.json` / `netlify.toml` / `fly.toml` → deploy target
+- `.env.example` → environment variables (NEVER read .env)
+
+**Database:**
+- `prisma/schema.prisma` → Prisma schema
+- `drizzle.config.ts` → Drizzle ORM
+- `knexfile.*` / `ormconfig.*` → other ORMs
+- `migrations/` or `db/migrate/` → check migration tool
+
+**CI/CD & workflows:**
+- `.github/workflows/` → GitHub Actions
+- `.gitlab-ci.yml` → GitLab CI
+- `.husky/` → git hooks
+
+**Testing:**
+- `jest.config*` / `vitest.config*` / `playwright.config*` / `cypress.config*`
+- Count test files: how many `*.test.*` or `*.spec.*` files exist
+
+**Existing AI context:**
+- `CLAUDE.md` → preserve, merge later
+- `.cursor/rules/` → import conventions
+- `AGENTS.md` → existing agent instructions
+- `.github/copilot-instructions.md` → existing copilot rules
+
+**Documentation:**
+- `README.md` → project description, setup
+- `CONTRIBUTING.md` → team conventions
+- `CHANGELOG.md` → recent changes, current version
+- `docs/` → architecture docs
+
+### Phase 1b: RESEARCH
+
+Use the information from Phase 1a to do targeted research.
+
+**1. Project docs — read what exists in the repo**
+
+Read README.md fully. Extract: project purpose, setup instructions,
+architecture notes. If CONTRIBUTING.md or docs/ exist, read those too.
+
+**2. Stack docs — pull up-to-date docs via Context7 (conditional)**
+
+Read `.claude/onboard-meta.json` if it exists. For each major dependency:
+
+- If version has changed since last onboard → pull fresh docs
+- If docs are older than 7 days → pull fresh docs
+- If docs are fresh and version unchanged → SKIP, use cached
+
+When pulling, query Context7 for the specific version detected.
+Focus on: conventions, breaking changes, migration guides, best practices.
+
+Save results to `.claude/context/stack-docs/{lib}-{version}.md`
+
+**3. Skills — search for relevant skills**
+
+Based on detected stack, search for available skills:
+- `npx skills search {framework}` if the CLI is available
+- Or note recommendations from known sources:
+  - `vercel-labs/agent-skills` (React, Next.js, deploy)
+  - `VoltAgent/awesome-agent-skills` (community collection)
+
+Store recommendations for Phase 2 output and Phase 4 suggestion.
+
+**4. Ecosystem — verify actual tooling**
+
+Read `package.json` scripts to understand real build/test/dev commands.
+Read CI config to understand actual pipeline steps.
+Read tsconfig/eslint to understand actual code conventions.
+DO NOT assume — verify from config files.
+
+---
+
+## Phase 2: GENERATE
+
+Generate the output files. Read `references/output-format.md` for the
+complete templates and file structure.
+
+### Output structure
+
+```
+project-root/
+├── CLAUDE.md                          # ≤ 150 lines, task-routed
+└── .claude/
+    ├── context/
+    │   ├── architecture.md            # Directory map + patterns
+    │   ├── conventions.md             # Coding standards (from config)
+    │   ├── workflow.md                # CI/CD, deploy, branch strategy
+    │   ├── stack-docs/               # Cached library docs
+    │   │   └── {lib}-{version}.md
+    │   └── warnings.md               # Things to watch out for
+    ├── commands/
+    │   ├── onboard-update.md          # /onboard-update command
+    │   └── onboard-audit.md           # /onboard-audit command
+    ├── onboard-meta.json              # Metadata for incremental updates
+    └── .claudeignore                  # (if not exists) auto-generated
+```
+
+### CLAUDE.md — CRITICAL RULES
+
+CLAUDE.md is NOT documentation for humans. It is a decision tree for the AI agent.
+
+Write it using the **task-based routing** pattern:
+
+```
+BEFORE [action] → read [file]
+WHEN [situation] → read [file]
+```
+
+Never just list files. Always tell the agent WHEN to read each file.
+
+Read `references/output-format.md` for the full CLAUDE.md template.
+
+### Context files — AI-first writing
+
+Every context file must start with:
+1. WHEN to read this file (one line)
+2. HOW the agent should use the information
+3. The actual content — concise, structured, actionable
+
+Do NOT write prose. Write structured data the agent can act on.
+
+### onboard-meta.json
+
+```json
+{
+  "version": "1.0",
+  "last_onboard": "ISO-8601",
+  "last_update": "ISO-8601",
+  "git_commit": "hash",
+  "language": "en",
+  "stack": ["nextjs", "prisma", "postgresql"],
+  "stack_docs": {
+    "next": { "version": "15.1.0", "docs_pulled_at": "ISO-8601" }
+  },
+  "phases_completed": ["discover", "generate"],
+  "interview_done": false,
+  "audit_done": false
+}
+```
+
+### Merging with existing CLAUDE.md
+
+If CLAUDE.md already exists:
+1. Read it fully
+2. Preserve all existing content
+3. ADD missing sections (task routing, context references, warnings)
+4. DO NOT overwrite user-written content
+5. Mark generated sections with `<!-- generated by project-onboard -->`
+
+### Skill recommendations
+
+After generating files, show the user what skills are available:
+
+```
+"Detected: Next.js + React + Prisma. Recommended skills:"
+  1. vercel-react-best-practices — 40+ React performance rules
+  2. web-design-guidelines — accessibility + UX audit
+  
+"Install with: npx skills add vercel-labs/agent-skills@vercel-react-best-practices"
+"Want me to install any of these?"
+```
+
+---
+
+## Phase 3: FEATURE AUDIT (optional)
+
+Ask before running: "Want me to audit existing features and map how
+pages, endpoints, and database connect?"
+
+If yes, scan the codebase to build a full feature map.
+Read `references/feature-audit-format.md` for output templates.
+
+### 3a: API Layer
+
+Scan route/controller files. For each endpoint, document:
+- HTTP method + path
+- Authentication requirements
+- Request body / query params (with types)
+- Response shape
+- Business logic summary (what it actually does)
+- Side effects (notifications, logs, external calls)
+
+### 3b: Data Layer
+
+Scan schema files (Prisma, TypeORM, Drizzle, raw SQL, etc.):
+- All models/tables with key fields
+- Relations between models
+- Enums and their values
+- Indexes and constraints worth noting
+
+### 3c: UI Layer
+
+Scan page/screen files:
+- Route path → component file
+- Which API endpoints each page calls (search for fetch/axios/useQuery)
+- Key components used
+- Features available on each page
+
+### 3d: Feature Mapping
+
+Cross-reference all three layers into a feature map:
+
+```
+Feature: [Name]
+  Pages:    /path → ComponentName
+  API:      GET /api/x, POST /api/y
+  DB:       TableA, TableB
+  Logic:    [what the feature does end-to-end]
+```
+
+Also identify:
+- Unmapped endpoints (API exists but no page calls it)
+- Unmapped pages (page exists but calls no API)
+- Orphan tables (DB table not referenced by any endpoint)
+
+### Output files
+
+```
+.claude/context/features/
+  ├── _feature-map.md        # Cross-reference map (read this first)
+  ├── api-endpoints.md       # All endpoints
+  ├── db-schema.md           # Schema summary
+  ├── pages-views.md         # All pages + their API calls
+  └── audit-meta.json        # Timestamp, coverage stats
+```
+
+After generating, update CLAUDE.md with task-routing rules for features:
+
+```
+BEFORE modifying any API endpoint:
+  → read .claude/context/features/api-endpoints.md
+  → read .claude/context/features/db-schema.md
+
+BEFORE modifying any page or component:
+  → read .claude/context/features/pages-views.md
+  → read .claude/context/features/_feature-map.md
+```
+
+---
+
+## Phase 4: INTERVIEW (optional)
+
+The agent has now scanned and understood the entire project.
+Questions are informed by everything discovered in Phase 1-3.
+
+Ask before running: "Want me to ask you some questions about
+the project? This helps me understand things code can't tell me."
+
+### If Phase 3 was completed — short interview (3 questions)
+
+The agent already knows the codebase deeply. Ask only what code cannot reveal:
+
+```
+1. "[Summary from README + code]. Is this accurate?
+    Any business context or domain terms I should know?"
+
+2. "Any conventions, processes, or areas I should NOT touch
+    without asking first?"
+
+3. "Anything else you want me to know?"
+```
+
+### If Phase 3 was skipped — full interview (4 groups)
+
+#### Group 1: Business & Domain
+```
+1. "What does this project do? Who are the main users?"
+2. "Any domain-specific terms I should understand?"
+3. "What phase is this project in?
+    (MVP / active dev / maintenance / legacy refactor)"
+```
+
+#### Group 2: Team & Workflow
+```
+4. "How many people work on this? Code review process?"
+5. "Branch strategy? (trunk-based / gitflow / feature branches)"
+6. "Deploy process? (auto/manual, staging environment?)"
+7. "Any conventions you want me to always follow?"
+```
+
+#### Group 3: Code Quality & Testing
+```
+8. "Want to restructure the code?
+    (e.g., extract business logic to service layer)"
+    — If Phase 1 found logic in route handlers, mention it specifically.
+
+9. "Do you want TDD? (write tests before implementation)"
+
+10. "Testing strategy?"
+    — Unit only
+    — Unit + Integration
+    — Unit + Integration + E2E
+    — No tests yet, want to start
+
+11. "Test framework preference?"
+    — Mention what was detected: "Found [vitest/jest], correct?"
+    — For E2E: Playwright / Cypress / other?
+
+12. "Coverage target? (none / 60% / 80% / 90%+)"
+    — If tests exist, mention current estimated coverage.
+```
+
+#### Group 4: AI Behavior
+```
+13. "Anything that AI agents frequently break in this project?"
+
+14. "Files or folders I should never modify without asking?"
+
+15. "How autonomous should I be?"
+    — Conservative: always ask before acting
+    — Balanced: act but explain
+    — Autonomous: just do it
+
+16. "Anything else I should know?"
+```
+
+### Adaptive questions
+
+Questions MUST adapt to what was discovered. Do not ask generic questions
+when you already have the answer from Phase 1-3.
+
+**Example — tests detected:**
+```
+BAD:  "Do you want to write tests?"
+GOOD: "Found Vitest with 23 test files, ~45% coverage.
+       Want me to help increase coverage? Add E2E with Playwright?"
+```
+
+**Example — logic in route handlers:**
+```
+BAD:  "Want to restructure the code?"
+GOOD: "Found business logic directly in route handlers
+       (e.g., /api/pipelines has 120 lines of logic).
+       Want me to extract it to a service layer?"
+```
+
+### Interview output
+
+Save answers to context files:
+- Business context → `.claude/context/business.md`
+- Testing strategy → `.claude/context/testing-strategy.md`
+- Update `warnings.md` with files/areas to protect
+- Update `workflow.md` with team process info
+- Update `conventions.md` with stated preferences
+- Update CLAUDE.md task-routing with new sections
+
+Update `onboard-meta.json`: set `interview_done: true`.
+
+---
+
+## Incremental Update (/onboard-update)
+
+When the user runs `/onboard-update`:
+
+1. Read `.claude/onboard-meta.json`
+2. Run `git diff {last_commit}..HEAD --name-only` to find changed files
+3. For each changed file, determine which context files need updating:
+   - `package.json` changed → re-detect stack, check if docs need refresh
+   - `prisma/schema.prisma` changed → update db-schema.md + feature-map
+   - Route files changed → update api-endpoints.md + feature-map
+   - Page files changed → update pages-views.md + feature-map
+   - Config files changed → update conventions.md or workflow.md
+4. Update only affected context files
+5. Update `onboard-meta.json` with new timestamp and commit hash
+6. Show summary: "Updated X files based on Y changes since last onboard"
+
+For `/onboard-update --full`:
+- Re-scan everything from Phase 1
+- Regenerate all context files
+- Preserve interview answers (do not re-ask)
+
+---
+
+## Stack Docs Caching
+
+Context7 docs are cached in `.claude/context/stack-docs/`.
+Pull strategy:
+
+| Condition | Action |
+|-----------|--------|
+| Never pulled | Pull now |
+| Library version changed | Pull now (may have breaking changes) |
+| Same version, docs ≤ 7 days old | Skip, use cache |
+| Same version, docs > 7 days old | Pull fresh |
+| User runs `--force-docs` | Pull everything |
+
+---
+
+## Future: Multi-agent Support
+
+This skill currently generates output for Claude Code only.
+Future versions may support additional agents:
+
+```
+Claude Code  → CLAUDE.md + .claude/context/
+Cursor       → .cursor/rules/
+Codex        → AGENTS.md
+Copilot      → .github/copilot-instructions.md
+```
+
+The context files in `.claude/context/` are written in
+agent-neutral markdown. Adding support for other agents
+means generating a wrapper file that routes to the same context.
+
+---
+
+## Reference files
+
+Read these before generating output:
+- `references/output-format.md` — CLAUDE.md template, context file templates
+- `references/feature-audit-format.md` — Feature audit output templates
