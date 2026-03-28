@@ -17,7 +17,7 @@ npx skills add https://github.com/nixxel-company-limited/nixxel-skills
 Onboard an AI agent into any project — auto-detect stack, research up-to-date docs, audit features (Page → API → DB mapping), interview the developer, and generate structured context files with task-based routing.
 
 ```bash
-npx skills add https://github.com/nixxel-company-limited/nixxel-skills@project-onboard
+npx skills add https://github.com/nixxel-company-limited/nixxel-skills --skill project-onboard
 ```
 
 **Commands:**
@@ -39,7 +39,7 @@ npx skills add https://github.com/nixxel-company-limited/nixxel-skills@project-o
 TeamLead orchestration — วิเคราะห์งาน แล้ว spawn SA/BA/Sn Dev/Dev/QA agents ทำงานแทน. Lead ไม่เขียนโค้ดเอง delegate เสมอ รองรับ monorepo.
 
 ```bash
-npx skills add https://github.com/nixxel-company-limited/nixxel-skills@teamlead-subagent
+npx skills add https://github.com/nixxel-company-limited/nixxel-skills --skill teamlead-subagent
 ```
 
 **Roles:**
