@@ -56,6 +56,23 @@ npx skills add https://github.com/nixxel-company-limited/nixxel-skills --skill t
 
 ---
 
+#### cloudflare
+
+Set up a Next.js project for deployment on Cloudflare Workers using @opennextjs/cloudflare — install dependencies, configure wrangler, add build scripts, and verify with local workerd runtime.
+
+```bash
+npx skills add https://github.com/nixxel-company-limited/nixxel-skills --skill cloudflare
+```
+
+**Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `/cloudflare` | Full setup (steps 1-7, no deploy) |
+| `/cloudflare --deploy` | Full setup + deploy to Cloudflare |
+
+---
+
 ## How It Works
 
 Each skill is a self-contained directory under `skills/` with a `SKILL.md` that defines its behavior. When installed, Claude Code loads the skill and makes its commands available in your session.
