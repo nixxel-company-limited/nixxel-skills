@@ -31,17 +31,33 @@ Last updated: {date} | Run /onboard-update to refresh
 
 ## When to read what
 
-BEFORE modifying or creating any API endpoint:
-  → read .claude/context/features/api-endpoints.md
-  → read .claude/context/features/db-schema.md
-
-BEFORE modifying or creating any page or component:
-  → read .claude/context/features/pages-views.md
+BEFORE modifying or creating any page, screen, or route:
+  → read .claude/context/features/pages-routing.md
   → read .claude/context/features/_feature-map.md
 
-BEFORE modifying database schema or migrations:
-  → read .claude/context/features/db-schema.md
+BEFORE modifying app state (stores/slices/providers):
+  → read .claude/context/features/state-data.md
+  → read .claude/context/features/pages-routing.md (check consumers)
+
+BEFORE modifying UI components, theming, forms, or i18n:
+  → read .claude/context/features/design-system.md
+
+BEFORE modifying or creating any API endpoint or middleware:
+  → read .claude/context/features/api-middleware.md
+  → read .claude/context/features/pages-routing.md (check callers)
+
+BEFORE modifying database schema, caching, or migrations:
+  → read .claude/context/features/data-layer.md
   → read .claude/context/features/_feature-map.md (check impact)
+
+BEFORE modifying auth, permissions, or security config:
+  → read .claude/context/features/auth-security.md
+
+BEFORE modifying background jobs, events, or service communication:
+  → read .claude/context/features/background-events.md
+
+BEFORE modifying external integrations, logging, or config:
+  → read .claude/context/features/integrations-infra.md
 
 BEFORE writing or modifying tests:
   → read .claude/context/testing-strategy.md
@@ -253,12 +269,27 @@ Check this list before modifying files. Ask the user if unsure.
 
 ```json
 {
-  "version": "1.0",
+  "version": "2.0",
   "last_onboard": "2026-02-27T10:00:00Z",
   "last_update": "2026-02-27T15:00:00Z",
   "git_commit": "abc1234def5678",
   "language": "en",
   "stack": ["nextjs", "prisma", "postgresql", "typescript"],
+  "platforms": {
+    "web": true,
+    "mobile": { "platform": "react-native", "variant": "expo" },
+    "backend": true
+  },
+  "categories_detected": [
+    "pages-routing",
+    "state-data",
+    "design-system",
+    "api-middleware",
+    "data-layer",
+    "auth-security",
+    "background-events",
+    "integrations-infra"
+  ],
   "stack_docs": {
     "next": {
       "version": "15.1.0",
@@ -273,13 +304,7 @@ Check this list before modifying files. Ask the user if unsure.
   },
   "phases_completed": ["discover", "generate", "audit", "interview"],
   "interview_done": true,
-  "audit_done": true,
-  "audit_coverage": {
-    "endpoints_found": 12,
-    "pages_found": 8,
-    "db_tables": 6,
-    "features_mapped": 5
-  }
+  "audit_done": true
 }
 ```
 
@@ -302,4 +327,13 @@ __pycache__/
 *.map
 public/assets/
 .git/
+# Mobile
+ios/Pods/
+android/.gradle/
+android/build/
+.expo/
+# Backend
+target/
+bin/
+vendor/
 ```

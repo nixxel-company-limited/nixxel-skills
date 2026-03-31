@@ -1,14 +1,16 @@
 ---
 name: project-onboard
 description: >
-  Onboard an AI agent into any project — detect stack, research up-to-date docs,
-  audit features (Page→API→DB mapping), interview the developer, and generate
-  structured context files with task-based routing so the agent never wastes time
-  exploring the project again. Use this skill whenever the user says "onboard",
-  "set up context", "scan this project", "generate CLAUDE.md", "map this codebase",
-  "audit features", "what does this project do", or any request to help an AI agent
-  understand a new or existing codebase. Also trigger when the user starts working
-  in an unfamiliar repo and would benefit from structured context generation.
+  Onboard an AI agent into any project — detect stack (web, mobile, backend),
+  research up-to-date docs, run a universal 8-category audit (pages, state, UI,
+  API, data, auth, jobs, integrations) with auto-detection and auto-skip,
+  interview the developer, and generate structured context files with task-based
+  routing so the agent never wastes time exploring the project again. Use this
+  skill whenever the user says "onboard", "set up context", "scan this project",
+  "generate CLAUDE.md", "map this codebase", "audit features", "what does this
+  project do", or any request to help an AI agent understand a new or existing
+  codebase. Also trigger when the user starts working in an unfamiliar repo and
+  would benefit from structured context generation.
 ---
 
 # Project Onboard
@@ -87,6 +89,23 @@ Check these files (skip if they don't exist):
 - `Cargo.toml` → Rust
 - `composer.json` → PHP
 - `Gemfile` → Ruby
+
+**Mobile:**
+- `package.json` dep `react-native` → React Native
+- `app.json` / `app.config.js` → Expo
+- `pubspec.yaml` dep `flutter` → Flutter
+
+**State management:**
+- `@reduxjs/toolkit` / `zustand` / `jotai` / `@tanstack/react-query` in deps
+- `riverpod` / `bloc` / `provider` in pubspec.yaml
+
+**Background jobs:**
+- `bullmq` / `bull` / `celery` / `sidekiq` in deps
+- Queue processor files
+
+**i18n:**
+- Locale files (`en.json`, `th.json`, etc.)
+- i18n library in deps (`next-intl`, `react-i18next`, `flutter_localizations`)
 
 **Configuration:**
 - `tsconfig.json` → TypeScript settings
@@ -216,12 +235,25 @@ Do NOT write prose. Write structured data the agent can act on.
 
 ```json
 {
-  "version": "1.0",
+  "version": "2.0",
   "last_onboard": "ISO-8601",
   "last_update": "ISO-8601",
   "git_commit": "hash",
   "language": "en",
   "stack": ["nextjs", "prisma", "postgresql"],
+  "platforms": {
+    "web": true,
+    "mobile": false,
+    "backend": true
+  },
+  "categories_detected": [
+    "pages-routing",
+    "api-middleware",
+    "data-layer",
+    "auth-security",
+    "background-events",
+    "integrations-infra"
+  ],
   "stack_docs": {
     "next": { "version": "15.1.0", "docs_pulled_at": "ISO-8601" }
   },
@@ -255,78 +287,77 @@ After generating files, show the user what skills are available:
 
 ---
 
-## Phase 3: FEATURE AUDIT (optional)
+## Phase 3: UNIVERSAL AUDIT (optional)
 
-Ask before running: "Want me to audit existing features and map how
-pages, endpoints, and database connect?"
+Ask before running: "Want me to audit existing features? I'll scan
+pages, state, UI, API, data, auth, jobs, and integrations."
 
-If yes, scan the codebase to build a full feature map.
-Read `references/feature-audit-format.md` for output templates.
+If yes, scan the codebase using 8 categories. Each category auto-detects
+and auto-skips if not found. Read `references/universal-audit.md` for
+full scanning strategies and output templates.
 
-### 3a: API Layer
+### The 8 Categories
 
-Scan route/controller files. For each endpoint, document:
-- HTTP method + path
-- Authentication requirements
-- Request body / query params (with types)
-- Response shape
-- Business logic summary (what it actually does)
-- Side effects (notifications, logs, external calls)
+| # | Category | Output file | What it covers |
+|---|----------|-------------|----------------|
+| 1 | Pages & Routing | `pages-routing.md` | Pages, screens, navigation, deep links, route guards |
+| 2 | State & Data Fetching | `state-data.md` | Stores, slices, providers, client caching, data fetching |
+| 3 | Design System & UI | `design-system.md` | Components, theming, forms, i18n, accessibility |
+| 4 | API & Middleware | `api-middleware.md` | Endpoints, middleware pipeline, validation, error handling |
+| 5 | Data Layer | `data-layer.md` | DB schema, migrations, caching, transactions, seeds |
+| 6 | Auth & Security | `auth-security.md` | Authentication, authorization, rate limits, CORS, secrets |
+| 7 | Background & Events | `background-events.md` | Jobs, event-driven arch, scheduled tasks, service comms |
+| 8 | Integrations & Infra | `integrations-infra.md` | External APIs, file storage, logging, config, health checks |
 
-### 3b: Data Layer
-
-Scan schema files (Prisma, TypeORM, Drizzle, raw SQL, etc.):
-- All models/tables with key fields
-- Relations between models
-- Enums and their values
-- Indexes and constraints worth noting
-
-### 3c: UI Layer
-
-Scan page/screen files:
-- Route path → component file
-- Which API endpoints each page calls (search for fetch/axios/useQuery)
-- Key components used
-- Features available on each page
-
-### 3d: Feature Mapping
-
-Cross-reference all three layers into a feature map:
-
-```
-Feature: [Name]
-  Pages:    /path → ComponentName
-  API:      GET /api/x, POST /api/y
-  DB:       TableA, TableB
-  Logic:    [what the feature does end-to-end]
-```
-
-Also identify:
-- Unmapped endpoints (API exists but no page calls it)
-- Unmapped pages (page exists but calls no API)
-- Orphan tables (DB table not referenced by any endpoint)
+Cross-reference all detected categories into `_feature-map.md`.
+Also identify orphans: unmapped endpoints, pages, state, jobs, DB tables.
 
 ### Output files
 
 ```
 .claude/context/features/
-  ├── _feature-map.md        # Cross-reference map (read this first)
-  ├── api-endpoints.md       # All endpoints
-  ├── db-schema.md           # Schema summary
-  ├── pages-views.md         # All pages + their API calls
-  └── audit-meta.json        # Timestamp, coverage stats
+  ├── _feature-map.md           # Cross-reference all categories per feature
+  ├── pages-routing.md          # 1: Pages & Routing (web + mobile)
+  ├── state-data.md             # 2: State & Data Fetching
+  ├── design-system.md          # 3: Design System & UI
+  ├── api-middleware.md          # 4: API & Middleware
+  ├── data-layer.md             # 5: Data Layer
+  ├── auth-security.md          # 6: Auth & Security
+  ├── background-events.md      # 7: Background & Events
+  ├── integrations-infra.md     # 8: Integrations & Infra
+  └── audit-meta.json           # Coverage stats per category
 ```
 
-After generating, update CLAUDE.md with task-routing rules for features:
+After generating, update CLAUDE.md with task-routing rules:
 
 ```
-BEFORE modifying any API endpoint:
-  → read .claude/context/features/api-endpoints.md
-  → read .claude/context/features/db-schema.md
-
-BEFORE modifying any page or component:
-  → read .claude/context/features/pages-views.md
+BEFORE modifying or creating any page, screen, or route:
+  → read .claude/context/features/pages-routing.md
   → read .claude/context/features/_feature-map.md
+
+BEFORE modifying app state (stores/slices/providers):
+  → read .claude/context/features/state-data.md
+  → read .claude/context/features/pages-routing.md (check consumers)
+
+BEFORE modifying UI components, theming, forms, or i18n:
+  → read .claude/context/features/design-system.md
+
+BEFORE modifying or creating any API endpoint:
+  → read .claude/context/features/api-middleware.md
+  → read .claude/context/features/pages-routing.md (check callers)
+
+BEFORE modifying database schema, caching, or migrations:
+  → read .claude/context/features/data-layer.md
+  → read .claude/context/features/_feature-map.md (check impact)
+
+BEFORE modifying auth, permissions, or security config:
+  → read .claude/context/features/auth-security.md
+
+BEFORE modifying background jobs, events, or service communication:
+  → read .claude/context/features/background-events.md
+
+BEFORE modifying external integrations, logging, or config:
+  → read .claude/context/features/integrations-infra.md
 ```
 
 ---
@@ -502,3 +533,4 @@ means generating a wrapper file that routes to the same context.
 Read these before generating output:
 - `references/output-format.md` — CLAUDE.md template, context file templates
 - `references/feature-audit-format.md` — Feature audit output templates
+- `references/universal-audit.md` — Full scanning strategies + output templates for all 8 audit categories

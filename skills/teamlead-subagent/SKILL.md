@@ -56,12 +56,14 @@ description: "TeamLead orchestration — วิเคราะห์งาน �
 
 1. **Lead = ตัวคุณเอง** — ไม่ต้อง spawn แยก
 2. **มีการแก้โค้ด = ต้อง spawn Dev** — ห้าม Lead เขียนโค้ดเอง
-3. **Dev เขียนเสร็จ = ต้องมี review** — spawn ตาม Review Domain (อ่าน `review-domains.md`)
-4. **ไม่มี dependency = ต้อง parallel** — spawn พร้อมกัน
-5. **Monorepo: 1 agent = 1 repo เท่านั้น** — ห้าม agent เดียวแก้ไฟล์ข้าม repo
-6. **ทุก agent ต้อง spawn เป็น background** (`run_in_background: true`)
-7. **ก่อน spawn ต้องผ่าน Prompt Validation** (อ่าน `validation.md`)
-8. **จบ wave = เขียน state** (อ่าน `state-management.md`)
+3. **Dev ทำงานเล็กๆ เท่านั้น** — 1 Dev agent ทำแค่ 1-2 tasks ต่อครั้ง ถ้างานใหญ่ให้แบ่งเป็นหลาย Dev agents
+4. **Backend ต้อง TDD** — ก่อน Dev implement backend ต้องให้ QA เขียน test ก่อน (test ต้อง fail) แล้ว Dev implement ให้ test pass ใช้ skill `superpowers:test-driven-development` (ใช้กับ API/service layer ไม่บังคับ frontend)
+5. **Dev เสร็จ = ต้อง review ทุกครั้ง** — Lead review diff ก่อน แล้ว spawn reviewer ตาม Review Domain (อ่าน `review-domains.md`) ห้ามข้าม review
+6. **ไม่มี dependency = ต้อง parallel** — spawn พร้อมกัน
+7. **Monorepo: 1 agent = 1 repo เท่านั้น** — ห้าม agent เดียวแก้ไฟล์ข้าม repo
+8. **ทุก agent ต้อง spawn เป็น background** (`run_in_background: true`)
+9. **ก่อน spawn ต้องผ่าน Prompt Validation** (อ่าน `validation.md`)
+10. **จบ wave = เขียน state** (อ่าน `state-management.md`)
 
 ---
 
@@ -70,25 +72,54 @@ description: "TeamLead orchestration — วิเคราะห์งาน �
 เมื่อทำงานใน monorepo (หลาย repos/submodules):
 
 - **ห้าม** agent 1 ตัวทำงานข้ามหลาย repo
-- ถ้า feature กระทบ `prathan-api` + `prathan-customer` → spawn Dev 2 ตัว แต่ละตัวรับผิดชอบ repo เดียว
+- ถ้า feature กระทบหลาย repos → spawn Dev แยกต่อ repo แต่ละตัวรับผิดชอบ repo เดียว
 - ระบุ working directory ชัดเจนใน prompt: `cd {repo}` ก่อนทำงาน
 - ถ้า repo A ต้องรอ repo B เสร็จก่อน → spawn เป็น sequence ไม่ใช่ parallel
+
+---
+
+## Brainstorming Gate (บังคับสำหรับ Feature)
+
+| งาน | ต้อง Brainstorm? |
+|-----|:---------------:|
+| Feature ใหม่ (WF-1, WF-2, WF-5) | ✅ **บังคับ** |
+| Bug fix (WF-3) | ❌ ข้าม |
+| Refactor (WF-4) | ❌ ข้าม |
+| Research (WF-6) | ❌ ข้าม |
+| Infra (WF-7) | ❌ ข้าม |
+
+**เมื่องานเป็น Feature:**
+1. **Invoke `superpowers:brainstorming`** ก่อนเริ่ม workflow — Q&A กับ Human จนได้ spec
+2. ส่ง SA + Sn Dev review spec (เป็นส่วนหนึ่งของ Wave 0)
+3. แก้ spec ตาม review findings
+4. Human approve spec → เข้า workflow ปกติ
+
+**ห้ามข้าม brainstorming สำหรับ Feature:**
+- **ไม่มี spec** → invoke brainstorming เต็มรูปแบบ (Q&A จนได้ spec)
+- **มี spec แล้ว** (เช่น บน Notion) → ส่ง SA + Sn Dev review spec ก่อน → แล้ว invoke brainstorming (Q&A กับ Human จนได้ spec ที่แน่น) → Human approve
 
 ---
 
 ## Flow
 
 ```
-1. เริ่ม conversation → อ่าน state-management.md → เช็ค resume
-2. รับงาน → วิเคราะห์ (ใช้ Decision Table)
-3. เลือก Workflow → อ่าน workflows.md
-4. ก่อน spawn → อ่าน validation.md → ผ่าน Prompt Validation
-5. Spawn ตาม workflow — parallel ทุกที่ที่ไม่มี dependency
-6. Agent กลับ → review output + เขียน state
-7. ก่อน review wave → อ่าน review-domains.md
-8. Review wave เสร็จ → Validation Gate (อ่าน validation.md)
-9. ทุกอย่างผ่าน → สรุปให้ Human + ลบ state
+1.  เริ่ม conversation → อ่าน state-management.md → เช็ค resume
+2.  รับงาน → วิเคราะห์ (ใช้ Decision Table)
+3.  Feature? → ดู Brainstorming Gate:
+    - ไม่มี spec → Invoke brainstorming → ได้ spec
+    - มี spec  → SA+Sn Dev review spec ก่อน → Invoke brainstorming → ได้ spec ที่แน่น
+4.  SA + Sn Dev review spec (ถ้ายังไม่ได้ review) → Human approve
+5.  Invoke writing-plans → ได้ implementation plan
+6.  เลือก Workflow → อ่าน workflows.md
+7.  ก่อน spawn → อ่าน validation.md → ผ่าน Prompt Validation
+8.  Spawn ตาม workflow — parallel ทุกที่ที่ไม่มี dependency
+9.  Agent กลับ → review output + เขียน state
+10. ก่อน review wave → อ่าน review-domains.md
+11. Review wave เสร็จ → Validation Gate (อ่าน validation.md)
+12. ทุกอย่างผ่าน → สรุปให้ Human + ลบ state
 ```
+
+**Non-Feature (Bug fix, Refactor, Research, Infra):** ข้าม step 3-5 เข้า step 6 เลย
 
 ---
 
@@ -127,9 +158,9 @@ description: "TeamLead orchestration — วิเคราะห์งาน �
 |------|---------------------|
 | SA | architecture skills, data modeling skills, `superpowers:brainstorming` |
 | BA | requirement analysis skills, spec writing skills |
-| Sn Dev | `superpowers:systematic-debugging`, code review skills, Context7 MCP |
-| Dev | runtime/framework skills (เช่น `bun-development`), `superpowers:executing-plans` |
-| QA | testing skills, `superpowers:verification-before-completion` |
+| Sn Dev | `superpowers:systematic-debugging`, code review skills, Context7 MCP, `nextjs-app-router-patterns`, `typescript-advanced-types` |
+| Dev | runtime/framework skills (เช่น `bun-development`), `superpowers:executing-plans`, `nextjs-app-router-patterns` |
+| QA | testing skills, `superpowers:verification-before-completion`, **`playwright-best-practices` (บังคับเมื่อเขียน/แก้ E2E tests)** |
 
 **วิธีส่ง:** ระบุใน prompt ว่า "ใช้ skill {name} ด้วย" — agent จะ invoke เอง
 
