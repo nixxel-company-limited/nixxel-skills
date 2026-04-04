@@ -103,7 +103,7 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 - Spec/Design: Read {DESIGN_FILE_PATH}
 - Impact Report: Read {IMPACT_REPORT_PATH}
 - Changed files: {LIST_OF_CHANGED_FILES}
-- Project conventions: Read .claude/context/conventions.md
+- Project conventions: Read .context/conventions.md
 
 **Instructions:**
 1. Read all changed files

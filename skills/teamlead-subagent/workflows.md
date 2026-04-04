@@ -63,7 +63,7 @@ Each agent produces an Impact Report using this template:
 
 **Lead action after Wave 0:**
 1. Collect Impact Reports from all Wave 0 agents
-2. Merge into a single file: `.claude/state/{TASK_ID}/wave-0-impact.md`
+2. Merge into a single file: `.state/{TASK_ID}/wave-0-impact.md`
 3. Pass `wave-0-impact.md` as context to all agents in the next wave
 
 ---
@@ -145,7 +145,7 @@ Agent fails again on re-check --> escalate to Human
 **Context for agents:** Task description + spec/PRD from Human
 
 **Lead action after wave:**
-- Merge Impact Reports into `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
 
 ---
 
@@ -160,7 +160,7 @@ Agent fails again on re-check --> escalate to Human
 - Original spec/PRD from Human
 
 **Lead action after wave:**
-- Merge BA's AC list + SA's design into `.claude/state/{TASK_ID}/wave-1-design.md`
+- Merge BA's AC list + SA's design into `.state/{TASK_ID}/wave-1-design.md`
 
 ---
 
@@ -174,7 +174,7 @@ Agent fails again on re-check --> escalate to Human
 - `wave-0-impact.md` (affected files for test targeting)
 
 **Lead action after wave:**
-- Save QA's test plan/file list to `.claude/state/{TASK_ID}/wave-2-tests.md`
+- Save QA's test plan/file list to `.state/{TASK_ID}/wave-2-tests.md`
 - Verify tests exist and fail as expected
 
 ---
@@ -190,7 +190,7 @@ Agent fails again on re-check --> escalate to Human
 - `wave-0-impact.md` (constraints, risks)
 
 **Lead action after wave:**
-- Save implementation summary to `.claude/state/{TASK_ID}/wave-3-implementation.md`
+- Save implementation summary to `.state/{TASK_ID}/wave-3-implementation.md`
 - Verify Dev stayed within the designed architecture
 
 ---
@@ -238,7 +238,7 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 **Context for agents:** Task description + raw requirements from Human
 
 **Lead action after wave:**
-- Merge Impact Reports into `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
 
 ---
 
@@ -252,7 +252,7 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - Raw requirements from Human
 
 **Lead action after wave:**
-- Save BA's spec + AC list to `.claude/state/{TASK_ID}/wave-1-spec.md`
+- Save BA's spec + AC list to `.state/{TASK_ID}/wave-1-spec.md`
 
 ---
 
@@ -266,7 +266,7 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - `wave-0-impact.md` (affected modules, constraints)
 
 **Lead action after wave:**
-- Save SA's design to `.claude/state/{TASK_ID}/wave-2-design.md`
+- Save SA's design to `.state/{TASK_ID}/wave-2-design.md`
 
 ---
 
@@ -281,7 +281,7 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - `wave-0-impact.md` (affected files)
 
 **Lead action after wave:**
-- Save test plan to `.claude/state/{TASK_ID}/wave-3-tests.md`
+- Save test plan to `.state/{TASK_ID}/wave-3-tests.md`
 - Verify tests fail as expected
 
 ---
@@ -298,7 +298,7 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - `wave-0-impact.md` (constraints, risks)
 
 **Lead action after wave:**
-- Save implementation summary to `.claude/state/{TASK_ID}/wave-4-implementation.md`
+- Save implementation summary to `.state/{TASK_ID}/wave-4-implementation.md`
 
 ---
 
@@ -345,7 +345,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 **Context for agents:** Bug description + reproduction steps from Human
 
 **Lead action after wave:**
-- Save Impact Report to `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Save Impact Report to `.state/{TASK_ID}/wave-0-impact.md`
 
 ---
 
@@ -359,7 +359,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - Bug description from Human
 
 **Lead action after wave:**
-- Save root cause analysis to `.claude/state/{TASK_ID}/wave-1-root-cause.md`
+- Save root cause analysis to `.state/{TASK_ID}/wave-1-root-cause.md`
 
 ---
 
@@ -373,7 +373,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - `wave-0-impact.md` (affected files)
 
 **Lead action after wave:**
-- Save test info to `.claude/state/{TASK_ID}/wave-2-tests.md`
+- Save test info to `.state/{TASK_ID}/wave-2-tests.md`
 - Verify test reproduces the bug (fails)
 
 ---
@@ -389,7 +389,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - `wave-0-impact.md` (constraints, other affected areas)
 
 **Lead action after wave:**
-- Save fix summary to `.claude/state/{TASK_ID}/wave-3-fix.md`
+- Save fix summary to `.state/{TASK_ID}/wave-3-fix.md`
 
 ---
 
@@ -440,7 +440,7 @@ Summarize for Human.
 **Context for agents:** Refactor scope/goal from Human
 
 **Lead action after wave:**
-- Merge Impact Reports into `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
 
 ---
 
@@ -454,7 +454,7 @@ Summarize for Human.
 - Current code state (SA reads relevant files)
 
 **Lead action after wave:**
-- Save design to `.claude/state/{TASK_ID}/wave-1-design.md`
+- Save design to `.state/{TASK_ID}/wave-1-design.md`
 
 ---
 
@@ -468,7 +468,7 @@ Summarize for Human.
 - `wave-0-impact.md` (constraints, affected files)
 
 **Lead action after wave:**
-- Save implementation summary to `.claude/state/{TASK_ID}/wave-2-implementation.md`
+- Save implementation summary to `.state/{TASK_ID}/wave-2-implementation.md`
 
 ---
 
@@ -515,7 +515,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 **Context for agents:** Task description + which repos are involved
 
 **Lead action after wave:**
-- Merge Impact Reports into `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
 - Include per-repo breakdown: which files in which repo
 
 ---
@@ -531,7 +531,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - Task description / spec from Human
 
 **Lead action after wave:**
-- Merge into `.claude/state/{TASK_ID}/wave-1-design.md`
+- Merge into `.state/{TASK_ID}/wave-1-design.md`
 - Ensure AC-to-repo mapping is clear
 - Ensure API contract between repos is explicitly defined
 
@@ -550,7 +550,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 **Important:** QA-API must complete before Dev-API starts. Both agents work ONLY in the API repo.
 
 **Lead action after wave:**
-- Save to `.claude/state/{TASK_ID}/wave-2-api.md`
+- Save to `.state/{TASK_ID}/wave-2-api.md`
 - Verify API is functional and tests pass before proceeding to Wave 3
 
 ---
@@ -569,7 +569,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 **Important:** Wave 3 MUST NOT start until Wave 2 is fully complete (frontend depends on API). Both agents work ONLY in the frontend repo.
 
 **Lead action after wave:**
-- Save to `.claude/state/{TASK_ID}/wave-3-frontend.md`
+- Save to `.state/{TASK_ID}/wave-3-frontend.md`
 
 ---
 
@@ -659,7 +659,7 @@ No code changes are produced, so Validation Gate does not apply.
 **Context for agents:** Infra task description from Human
 
 **Lead action after wave:**
-- Save Impact Report to `.claude/state/{TASK_ID}/wave-0-impact.md`
+- Save Impact Report to `.state/{TASK_ID}/wave-0-impact.md`
 
 ---
 
@@ -673,7 +673,7 @@ No code changes are produced, so Validation Gate does not apply.
 - Task description from Human
 
 **Lead action after wave:**
-- Save implementation summary to `.claude/state/{TASK_ID}/wave-1-implementation.md`
+- Save implementation summary to `.state/{TASK_ID}/wave-1-implementation.md`
 
 ---
 

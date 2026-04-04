@@ -152,7 +152,7 @@ architecture notes. If CONTRIBUTING.md or docs/ exist, read those too.
 
 **2. Stack docs — pull up-to-date docs via Context7 (conditional)**
 
-Read `.claude/onboard-meta.json` if it exists. For each major dependency:
+Read `.context/onboard-meta.json` if it exists. For each major dependency:
 
 - If version has changed since last onboard → pull fresh docs
 - If docs are older than 7 days → pull fresh docs
@@ -161,7 +161,7 @@ Read `.claude/onboard-meta.json` if it exists. For each major dependency:
 When pulling, query Context7 for the specific version detected.
 Focus on: conventions, breaking changes, migration guides, best practices.
 
-Save results to `.claude/context/stack-docs/{lib}-{version}.md`
+Save results to `.context/stack-docs/{lib}-{version}.md`
 
 **3. Skills — search for relevant skills**
 
@@ -192,18 +192,18 @@ complete templates and file structure.
 ```
 project-root/
 ├── CLAUDE.md                          # ≤ 150 lines, task-routed
+├── .context/
+│   ├── architecture.md                # Directory map + patterns
+│   ├── conventions.md                 # Coding standards (from config)
+│   ├── workflow.md                    # CI/CD, deploy, branch strategy
+│   ├── stack-docs/                    # Cached library docs
+│   │   └── {lib}-{version}.md
+│   ├── warnings.md                    # Things to watch out for
+│   └── onboard-meta.json             # Metadata for incremental updates
 └── .claude/
-    ├── context/
-    │   ├── architecture.md            # Directory map + patterns
-    │   ├── conventions.md             # Coding standards (from config)
-    │   ├── workflow.md                # CI/CD, deploy, branch strategy
-    │   ├── stack-docs/               # Cached library docs
-    │   │   └── {lib}-{version}.md
-    │   └── warnings.md               # Things to watch out for
     ├── commands/
     │   ├── onboard-update.md          # /onboard-update command
     │   └── onboard-audit.md           # /onboard-audit command
-    ├── onboard-meta.json              # Metadata for incremental updates
     └── .claudeignore                  # (if not exists) auto-generated
 ```
 
@@ -315,7 +315,7 @@ Also identify orphans: unmapped endpoints, pages, state, jobs, DB tables.
 ### Output files
 
 ```
-.claude/context/features/
+.context/features/
   ├── _feature-map.md           # Cross-reference all categories per feature
   ├── pages-routing.md          # 1: Pages & Routing (web + mobile)
   ├── state-data.md             # 2: State & Data Fetching
@@ -332,32 +332,32 @@ After generating, update CLAUDE.md with task-routing rules:
 
 ```
 BEFORE modifying or creating any page, screen, or route:
-  → read .claude/context/features/pages-routing.md
-  → read .claude/context/features/_feature-map.md
+  → read .context/features/pages-routing.md
+  → read .context/features/_feature-map.md
 
 BEFORE modifying app state (stores/slices/providers):
-  → read .claude/context/features/state-data.md
-  → read .claude/context/features/pages-routing.md (check consumers)
+  → read .context/features/state-data.md
+  → read .context/features/pages-routing.md (check consumers)
 
 BEFORE modifying UI components, theming, forms, or i18n:
-  → read .claude/context/features/design-system.md
+  → read .context/features/design-system.md
 
 BEFORE modifying or creating any API endpoint:
-  → read .claude/context/features/api-middleware.md
-  → read .claude/context/features/pages-routing.md (check callers)
+  → read .context/features/api-middleware.md
+  → read .context/features/pages-routing.md (check callers)
 
 BEFORE modifying database schema, caching, or migrations:
-  → read .claude/context/features/data-layer.md
-  → read .claude/context/features/_feature-map.md (check impact)
+  → read .context/features/data-layer.md
+  → read .context/features/_feature-map.md (check impact)
 
 BEFORE modifying auth, permissions, or security config:
-  → read .claude/context/features/auth-security.md
+  → read .context/features/auth-security.md
 
 BEFORE modifying background jobs, events, or service communication:
-  → read .claude/context/features/background-events.md
+  → read .context/features/background-events.md
 
 BEFORE modifying external integrations, logging, or config:
-  → read .claude/context/features/integrations-infra.md
+  → read .context/features/integrations-infra.md
 ```
 
 ---
@@ -461,8 +461,8 @@ GOOD: "Found business logic directly in route handlers
 ### Interview output
 
 Save answers to context files:
-- Business context → `.claude/context/business.md`
-- Testing strategy → `.claude/context/testing-strategy.md`
+- Business context → `.context/business.md`
+- Testing strategy → `.context/testing-strategy.md`
 - Update `warnings.md` with files/areas to protect
 - Update `workflow.md` with team process info
 - Update `conventions.md` with stated preferences
@@ -476,7 +476,7 @@ Update `onboard-meta.json`: set `interview_done: true`.
 
 When the user runs `/onboard-update`:
 
-1. Read `.claude/onboard-meta.json`
+1. Read `.context/onboard-meta.json`
 2. Run `git diff {last_commit}..HEAD --name-only` to find changed files
 3. For each changed file, determine which context files need updating:
    - `package.json` changed → re-detect stack, check if docs need refresh
@@ -497,7 +497,7 @@ For `/onboard-update --full`:
 
 ## Stack Docs Caching
 
-Context7 docs are cached in `.claude/context/stack-docs/`.
+Context7 docs are cached in `.context/stack-docs/`.
 Pull strategy:
 
 | Condition | Action |
@@ -516,13 +516,13 @@ This skill currently generates output for Claude Code only.
 Future versions may support additional agents:
 
 ```
-Claude Code  → CLAUDE.md + .claude/context/
+Claude Code  → CLAUDE.md + .context/
 Cursor       → .cursor/rules/
 Codex        → AGENTS.md
 Copilot      → .github/copilot-instructions.md
 ```
 
-The context files in `.claude/context/` are written in
+The context files in `.context/` are written in
 agent-neutral markdown. Adding support for other agents
 means generating a wrapper file that routes to the same context.
 

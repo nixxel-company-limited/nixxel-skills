@@ -4,7 +4,7 @@ Templates for Phase 3 (Feature Audit) output files.
 Read this file BEFORE running the feature audit.
 
 Each category auto-detects and auto-skips if not found in the project.
-Output: 1 file per category in `.claude/context/features/`.
+Output: 1 file per category in `.context/features/`.
 
 ---
 
@@ -908,7 +908,7 @@ For config changes, check the env var list to avoid conflicts.
 - All state transitions: log fromStatus + toStatus
 - All business events: log entity + action + actor
 - All errors: log full error + context
-- Reference: `.claude/context/logging-convention.md`
+- Reference: `.context/logging-convention.md`
 
 ## Config Management
 

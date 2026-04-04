@@ -7,7 +7,7 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
 ## 1. Directory Structure
 
 ```
-.claude/state/
+.state/
 ├── teamlead.json              <- state tracker (1 active task)
 └── THUN-XX/                   <- folder per task
     ├── wave-0-impact.md       <- merged Impact Report
@@ -16,15 +16,15 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
     └── ...                    <- wave-N-{label}.md
 ```
 
-**Gitignore requirement:** `.claude/state/` MUST be in `.gitignore` -- this is local session state, never committed.
+**Gitignore requirement:** `.state/` MUST be in `.gitignore` -- this is local session state, never committed.
 
-If `.gitignore` does not contain `.claude/state/`, add it before writing any state files.
+If `.gitignore` does not contain `.state/`, add it before writing any state files.
 
 ---
 
 ## 2. State File Schema
 
-File: `.claude/state/teamlead.json`
+File: `.state/teamlead.json`
 
 ### Complete Example
 
@@ -43,7 +43,7 @@ File: `.claude/state/teamlead.json`
         { "role": "SA", "mission": "impact check", "status": "completed" },
         { "role": "Sn Dev", "mission": "impact check", "status": "completed" }
       ],
-      "outputFile": ".claude/state/THUN-48/wave-0-impact.md"
+      "outputFile": ".state/THUN-48/wave-0-impact.md"
     },
     "1": {
       "status": "completed",
@@ -51,7 +51,7 @@ File: `.claude/state/teamlead.json`
         { "role": "BA", "mission": "analyze AC from spec", "status": "completed" },
         { "role": "SA", "mission": "design API + data model", "status": "completed" }
       ],
-      "outputFile": ".claude/state/THUN-48/wave-1-design.md"
+      "outputFile": ".state/THUN-48/wave-1-design.md"
     },
     "2": {
       "status": "in_progress",
@@ -112,8 +112,8 @@ File: `.claude/state/teamlead.json`
 Always write state files atomically to prevent corruption:
 
 ```
-1. Write content to .claude/state/teamlead.json.tmp
-2. Rename .claude/state/teamlead.json.tmp to .claude/state/teamlead.json
+1. Write content to .state/teamlead.json.tmp
+2. Rename .state/teamlead.json.tmp to .state/teamlead.json
 ```
 
 Never write directly to `teamlead.json` -- a crash mid-write would corrupt the file.
@@ -131,7 +131,7 @@ Never write directly to `teamlead.json` -- a crash mid-write would corrupt the f
 
 When a wave completes, Lead summarizes all agent outputs into a single markdown file:
 
-- File path: `.claude/state/{taskId}/wave-{N}-{label}.md`
+- File path: `.state/{taskId}/wave-{N}-{label}.md`
 - Label convention: `impact`, `design`, `tests`, `implementation`, `review`
 - Content: Lead-written summary combining all agent outputs for that wave
 - This file becomes context input for subsequent waves
@@ -145,7 +145,7 @@ When to delete state:
 3. Summary delivered to Human
 4. Human acknowledges
 
-Then: delete the entire task folder (`.claude/state/{taskId}/`) and the state file (`.claude/state/teamlead.json`).
+Then: delete the entire task folder (`.state/{taskId}/`) and the state file (`.state/teamlead.json`).
 
 ---
 
@@ -157,7 +157,7 @@ On every conversation start, check for existing state:
 Start conversation
   |
   v
-Check: does .claude/state/teamlead.json exist?
+Check: does .state/teamlead.json exist?
   |
   +-- NOT FOUND --> Normal start. No state to resume.
   |
@@ -191,7 +191,7 @@ Check: does .claude/state/teamlead.json exist?
         v
       Human says NO:
         - Ask: "Cleanup? (delete state files + revert branch changes?)"
-        - If cleanup YES: delete .claude/state/{taskId}/ + teamlead.json
+        - If cleanup YES: delete .state/{taskId}/ + teamlead.json
         - If cleanup NO: leave files in place, start fresh task
 ```
 
@@ -213,7 +213,7 @@ This ensures agents have full context even after a conversation reset.
 |------|--------|
 | **State file parse fail** (invalid JSON) | Notify Human: "State file corrupted." Backup as `teamlead.json.bak`. Start fresh -- ask Human for task context. |
 | **Agent timeout / crash** | Mark agent `status = "failed"` in state. Mark wave `status = "failed"`. Ask Human: "Agent {role} ({mission}) crashed -- re-spawn?" |
-| **Human cancel mid-task** | Ask Human: "Cleanup? Delete state files + task folder?" If yes, delete `.claude/state/{taskId}/` and `teamlead.json`. If branch should be reverted, confirm with Human before any destructive git operation. |
+| **Human cancel mid-task** | Ask Human: "Cleanup? Delete state files + task folder?" If yes, delete `.state/{taskId}/` and `teamlead.json`. If branch should be reverted, confirm with Human before any destructive git operation. |
 | **Output file missing** (state says completed but file not found) | Wave is incomplete. Set wave `status = "failed"`. Re-run the entire wave. |
 | **State vs output files mismatch** (output files exist but state disagrees) | **Trust output files.** Read all existing `wave-*.md` files in the task folder. Rebuild state from output files. Notify Human of the discrepancy. |
 | **Task folder missing** (state exists but no folder) | Treat as fresh start. Delete stale state file. Notify Human. |

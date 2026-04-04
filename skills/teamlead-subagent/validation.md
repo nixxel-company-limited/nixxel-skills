@@ -70,7 +70,7 @@ Item 2 -- Referenced files:
 These are checked by Lead reviewing the prompt text. No tool required, but Lead must verify consciously -- not skip.
 
 **Item 3 -- Context complete:**
-- Wave 0 completed? Prompt must reference `.claude/state/{taskId}/wave-0-impact.md`
+- Wave 0 completed? Prompt must reference `.state/{taskId}/wave-0-impact.md`
 - Wave 1 completed? Prompt must reference the design/AC output file
 - Wave N depends on Wave N-1? Previous wave output must be in the prompt
 - Exception: Wave 0 itself has no prior context requirement
@@ -83,7 +83,7 @@ These are checked by Lead reviewing the prompt text. No tool required, but Lead 
 **Item 5 -- Constraints complete:**
 - Every prompt must contain the monorepo rule: work only in `{repo}`, do not modify files outside
 - Every prompt must specify `cd {repo}` as the working directory
-- Convention reference: either inline key conventions or point to `.claude/context/conventions.md`
+- Convention reference: either inline key conventions or point to `.context/conventions.md`
 
 **Item 6 -- Output clear:**
 - Dev agents: "send back: list of files changed + brief summary"
