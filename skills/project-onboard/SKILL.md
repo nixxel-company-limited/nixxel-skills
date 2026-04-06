@@ -187,12 +187,22 @@ DO NOT assume — verify from config files.
 Generate the output files. Read `references/output-format.md` for the
 complete templates and file structure.
 
+**PATH RULES — read carefully before writing any file:**
+- Context files go in `project-root/.context/` (a top-level dot folder)
+- Claude commands go in `project-root/.claude/commands/`
+- These are TWO SEPARATE directories at project root. Do NOT nest `.context/` inside `.claude/`.
+- Wrong: `.claude/context/`, `.claude/.context/`, `.claude/architecture.md`
+- Correct: `.context/architecture.md`, `.claude/commands/onboard-update.md`
+
+**Before creating the first file**, double-check: are you about to write to `.context/` or `.claude/context/`?
+If the path contains `.claude/context` or `.claude/.context`, STOP — that's wrong. Fix it to `.context/`.
+
 ### Output structure
 
 ```
 project-root/
 ├── CLAUDE.md                          # ≤ 150 lines, task-routed
-├── .context/
+├── .context/                          # ⚠️ THIS IS project-root/.context/ — NOT .claude/context/
 │   ├── architecture.md                # Directory map + patterns
 │   ├── conventions.md                 # Coding standards (from config)
 │   ├── workflow.md                    # CI/CD, deploy, branch strategy
@@ -206,6 +216,12 @@ project-root/
     │   └── onboard-audit.md           # /onboard-audit command
     └── .claudeignore                  # (if not exists) auto-generated
 ```
+
+> **⚠️ CRITICAL PATH WARNING:**
+> `.context/` lives at **project root** — the same level as `CLAUDE.md`.
+> NEVER create `.claude/context/` — that is wrong. The two directories are separate:
+> - `.context/` = onboard context files (architecture, conventions, features, etc.)
+> - `.claude/` = Claude commands and config only
 
 ### CLAUDE.md — CRITICAL RULES
 
@@ -313,6 +329,8 @@ Cross-reference all detected categories into `_feature-map.md`.
 Also identify orphans: unmapped endpoints, pages, state, jobs, DB tables.
 
 ### Output files
+
+Remember: `.context/` is at **project root**, not inside `.claude/`.
 
 ```
 .context/features/
