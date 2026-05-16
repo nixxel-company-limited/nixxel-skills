@@ -7,16 +7,17 @@ description: >
   interview the developer, and generate structured context files with task-based
   routing so the agent never wastes time exploring the project again. Use this
   skill whenever the user says "onboard", "set up context", "scan this project",
-  "generate CLAUDE.md", "map this codebase", "audit features", "what does this
-  project do", or any request to help an AI agent understand a new or existing
-  codebase. Also trigger when the user starts working in an unfamiliar repo and
-  would benefit from structured context generation.
+  "generate AGENTS.md", "generate CLAUDE.md", "map this codebase", "audit
+  features", "what does this project do", or any request to help an AI agent
+  understand a new or existing codebase. Also trigger when the user starts
+  working in an unfamiliar repo and would benefit from structured context
+  generation.
 ---
 
 # Project Onboard
 
 A skill that onboards AI agents into any project by generating structured,
-task-routed context files. Unlike `/init` which produces a flat CLAUDE.md,
+task-routed context files. Unlike `/init` which produces a flat agent file,
 this skill creates a progressive disclosure system where the agent reads
 only what it needs for the current task — saving tokens and eliminating
 redundant project exploration.
@@ -41,12 +42,13 @@ If the user appends a language name to the command (e.g., `/onboard Thai`,
 
 ```
 "You requested output in Thai. This will generate all context files
-and CLAUDE.md in Thai. Confirm? (yes/no)"
+and agent instruction files in Thai. Confirm? (yes/no)"
 ```
 
-If confirmed, write ALL output files in that language — CLAUDE.md, context
-files, feature map, everything. The SKILL.md instructions themselves remain
-in English, but generated output respects the user's language choice.
+If confirmed, write ALL output files in that language — AGENTS.md, CLAUDE.md
+shim, context files, feature map, everything. The SKILL.md instructions
+themselves remain in English, but generated output respects the user's
+language choice.
 
 Default language is English if not specified.
 
@@ -57,7 +59,7 @@ The agent knows more at each step, so later phases are smarter.
 
 ```
 Phase 1: DISCOVER .......... auto-detect stack + research docs
-Phase 2: GENERATE .......... create CLAUDE.md + context files
+Phase 2: GENERATE .......... create AGENTS.md + CLAUDE.md shim + context files
 Phase 3: FEATURE AUDIT ..... map Page → API → DB → Feature (optional)
 Phase 4: INTERVIEW ......... ask the developer (knows everything now)
 ```
@@ -130,9 +132,9 @@ Check these files (skip if they don't exist):
 - Count test files: how many `*.test.*` or `*.spec.*` files exist
 
 **Existing AI context:**
-- `CLAUDE.md` → preserve, merge later
+- `AGENTS.md` → preferred canonical agent instructions; preserve, merge later
+- `CLAUDE.md` → existing Claude Code instructions; ask user before migrating
 - `.cursor/rules/` → import conventions
-- `AGENTS.md` → existing agent instructions
 - `.github/copilot-instructions.md` → existing copilot rules
 
 **Documentation:**
@@ -189,10 +191,12 @@ complete templates and file structure.
 
 **PATH RULES — read carefully before writing any file:**
 - Context files go in `project-root/.context/` (a top-level dot folder)
+- Canonical agent instructions go in `project-root/AGENTS.md` (plural)
+- Claude Code compatibility instructions go in `project-root/CLAUDE.md`
 - Claude commands go in `project-root/.claude/commands/`
 - These are TWO SEPARATE directories at project root. Do NOT nest `.context/` inside `.claude/`.
 - Wrong: `.claude/context/`, `.claude/.context/`, `.claude/architecture.md`
-- Correct: `.context/architecture.md`, `.claude/commands/onboard-update.md`
+- Correct: `AGENTS.md`, `CLAUDE.md`, `.context/architecture.md`, `.claude/commands/onboard-update.md`
 
 **Before creating the first file**, double-check: are you about to write to `.context/` or `.claude/context/`?
 If the path contains `.claude/context` or `.claude/.context`, STOP — that's wrong. Fix it to `.context/`.
@@ -201,7 +205,8 @@ If the path contains `.claude/context` or `.claude/.context`, STOP — that's wr
 
 ```
 project-root/
-├── CLAUDE.md                          # ≤ 150 lines, task-routed
+├── AGENTS.md                          # ≤ 150 lines, canonical task-routed instructions
+├── CLAUDE.md                          # Compatibility shim pointing to AGENTS.md, unless user chooses otherwise
 ├── .context/                          # ⚠️ THIS IS project-root/.context/ — NOT .claude/context/
 │   ├── architecture.md                # Directory map + patterns
 │   ├── conventions.md                 # Coding standards (from config)
@@ -218,14 +223,18 @@ project-root/
 ```
 
 > **⚠️ CRITICAL PATH WARNING:**
-> `.context/` lives at **project root** — the same level as `CLAUDE.md`.
+> `.context/` lives at **project root** — the same level as `AGENTS.md` and `CLAUDE.md`.
 > NEVER create `.claude/context/` — that is wrong. The two directories are separate:
 > - `.context/` = onboard context files (architecture, conventions, features, etc.)
 > - `.claude/` = Claude commands and config only
 
-### CLAUDE.md — CRITICAL RULES
+### Agent Instruction Files — CRITICAL RULES
 
-CLAUDE.md is NOT documentation for humans. It is a decision tree for the AI agent.
+Use `AGENTS.md` (plural) as the preferred canonical instruction file. `AGENT.md`
+singular is not the convention used here.
+
+The canonical instruction file is NOT documentation for humans. It is a
+decision tree for the AI agent.
 
 Write it using the **task-based routing** pattern:
 
@@ -236,7 +245,41 @@ WHEN [situation] → read [file]
 
 Never just list files. Always tell the agent WHEN to read each file.
 
-Read `references/output-format.md` for the full CLAUDE.md template.
+Read `references/output-format.md` for the full AGENTS.md template and
+CLAUDE.md shim templates.
+
+#### Existing instruction file policy
+
+Before writing `AGENTS.md` or `CLAUDE.md`, detect which instruction files
+already exist:
+
+- If neither `AGENTS.md` nor `CLAUDE.md` exists:
+  - Create full task-routed content in `AGENTS.md`.
+  - Create `CLAUDE.md` as a small shim that tells Claude Code to read
+    `AGENTS.md` first.
+- If `AGENTS.md` exists and `CLAUDE.md` does not:
+  - Preserve and merge into `AGENTS.md`.
+  - Create `CLAUDE.md` as a small shim pointing to `AGENTS.md`.
+- If `CLAUDE.md` exists and `AGENTS.md` does not:
+  - Ask the user before changing ownership:
+    "I found an existing CLAUDE.md. Do you want me to migrate its content into
+    AGENTS.md and replace CLAUDE.md with a pointer, or keep CLAUDE.md as the
+    canonical file and create AGENTS.md as a pointer to it?"
+  - If the user chooses migration: read `CLAUDE.md`, preserve all user-written
+    content in `AGENTS.md`, add generated task-routing sections, then replace
+    `CLAUDE.md` with a shim pointing to `AGENTS.md`.
+  - If the user chooses to keep Claude canonical: preserve and merge into
+    `CLAUDE.md`, then create `AGENTS.md` as a shim pointing to `CLAUDE.md`.
+- If both `AGENTS.md` and `CLAUDE.md` exist:
+  - Read both.
+  - Prefer `AGENTS.md` as canonical unless `CLAUDE.md` clearly contains newer
+    or more complete user-written instructions.
+  - If the canonical choice is ambiguous, ask before merging.
+  - Keep the non-canonical file as a shim pointing to the canonical file.
+
+Never discard user-written instruction content. A shim may replace an existing
+file only after its original content has been migrated into the canonical file
+or the user explicitly chooses that direction.
 
 ### Context files — AI-first writing
 
@@ -256,6 +299,11 @@ Do NOT write prose. Write structured data the agent can act on.
   "last_update": "ISO-8601",
   "git_commit": "hash",
   "language": "en",
+  "agent_instructions": {
+    "canonical": "AGENTS.md",
+    "shim": "CLAUDE.md",
+    "shim_direction": "CLAUDE.md -> AGENTS.md"
+  },
   "stack": ["nextjs", "prisma", "postgresql"],
   "platforms": {
     "web": true,
@@ -279,9 +327,9 @@ Do NOT write prose. Write structured data the agent can act on.
 }
 ```
 
-### Merging with existing CLAUDE.md
+### Merging with existing instruction files
 
-If CLAUDE.md already exists:
+If the canonical instruction file already exists:
 1. Read it fully
 2. Preserve all existing content
 3. ADD missing sections (task routing, context references, warnings)
@@ -310,7 +358,8 @@ pages, state, UI, API, data, auth, jobs, and integrations."
 
 If yes, scan the codebase using 8 categories. Each category auto-detects
 and auto-skips if not found. Read `references/universal-audit.md` for
-full scanning strategies and output templates.
+full scanning strategies, then read `templates/feature-audit-format.md`
+for the exact output templates.
 
 ### The 8 Categories
 
@@ -346,7 +395,7 @@ Remember: `.context/` is at **project root**, not inside `.claude/`.
   └── audit-meta.json           # Coverage stats per category
 ```
 
-After generating, update CLAUDE.md with task-routing rules:
+After generating, update the canonical instruction file with task-routing rules:
 
 ```
 BEFORE modifying or creating any page, screen, or route:
@@ -484,7 +533,7 @@ Save answers to context files:
 - Update `warnings.md` with files/areas to protect
 - Update `workflow.md` with team process info
 - Update `conventions.md` with stated preferences
-- Update CLAUDE.md task-routing with new sections
+- Update the canonical instruction file task-routing with new sections
 
 Update `onboard-meta.json`: set `interview_done: true`.
 
@@ -498,13 +547,16 @@ When the user runs `/onboard-update`:
 2. Run `git diff {last_commit}..HEAD --name-only` to find changed files
 3. For each changed file, determine which context files need updating:
    - `package.json` changed → re-detect stack, check if docs need refresh
-   - `prisma/schema.prisma` changed → update db-schema.md + feature-map
-   - Route files changed → update api-endpoints.md + feature-map
-   - Page files changed → update pages-views.md + feature-map
+   - `prisma/schema.prisma` changed → update `.context/features/data-layer.md` + `.context/features/_feature-map.md`
+   - Route files changed → update `.context/features/api-middleware.md` + `.context/features/_feature-map.md`
+   - Page files changed → update `.context/features/pages-routing.md` + `.context/features/_feature-map.md`
    - Config files changed → update conventions.md or workflow.md
-4. Update only affected context files
-5. Update `onboard-meta.json` with new timestamp and commit hash
-6. Show summary: "Updated X files based on Y changes since last onboard"
+4. Update only affected context files and the canonical instruction file
+   recorded in `agent_instructions.canonical` if task-routing changed
+5. Keep the shim direction recorded in `agent_instructions.shim_direction`
+   unless the user asks to change canonical ownership
+6. Update `onboard-meta.json` with new timestamp and commit hash
+7. Show summary: "Updated X files based on Y changes since last onboard"
 
 For `/onboard-update --full`:
 - Re-scan everything from Phase 1
@@ -530,13 +582,14 @@ Pull strategy:
 
 ## Future: Multi-agent Support
 
-This skill currently generates output for Claude Code only.
-Future versions may support additional agents:
+This skill generates `AGENTS.md` as the canonical, agent-neutral entrypoint and
+`CLAUDE.md` as a Claude Code compatibility shim. Future versions may support
+additional wrappers:
 
 ```
-Claude Code  → CLAUDE.md + .context/
+Claude Code  → CLAUDE.md shim → AGENTS.md + .context/
 Cursor       → .cursor/rules/
-Codex        → AGENTS.md
+Codex        → AGENTS.md + .context/
 Copilot      → .github/copilot-instructions.md
 ```
 
@@ -549,6 +602,6 @@ means generating a wrapper file that routes to the same context.
 ## Reference files
 
 Read these before generating output:
-- `references/output-format.md` — CLAUDE.md template, context file templates
-- `references/feature-audit-format.md` — Feature audit output templates
+- `references/output-format.md` — AGENTS.md template, CLAUDE.md shim template, context file templates
 - `references/universal-audit.md` — Full scanning strategies + output templates for all 8 audit categories
+- `templates/feature-audit-format.md` — Feature audit output templates
