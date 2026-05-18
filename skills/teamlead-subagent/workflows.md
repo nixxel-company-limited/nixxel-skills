@@ -9,11 +9,20 @@ This file contains the complete wave-by-wave definition of all 7 workflows. Lead
 
 ---
 
-## Wave 0 -- Research/Impact Check
+## Wave 0 -- Impact + Feasibility Review
 
 ### Rules
 
 **Mandatory Wave 0:** All workflows must start with Wave 0, EXCEPT the cases below.
+
+**Source of truth:** For workflows that pass through Brainstorm/Spec/Plan gates, Wave 0 is an impact + feasibility review of the canonical artifacts:
+
+- `.state/{TASK_ID}/spec.md` -- canonical requirements, behavior, acceptance criteria, contracts
+- `.state/{TASK_ID}/plan.md` -- canonical implementation sequence, test strategy, repo/task scope
+
+`.state/{TASK_ID}/wave-0-impact.md` is supporting context created from the review findings. It is never the source of truth for requirements, scope, design intent, or the implementation plan.
+
+**Wave 0 skip is evaluated only after required gates complete.** A skip decision must never bypass Brainstorm/Spec/Plan gates. Brainstorm-required work (WF-1, WF-2, WF-5) may not skip canonical spec/plan feasibility review. The skip criteria below apply only to non-brainstorm workflows and cases that do not require canonical spec/plan review.
 
 **Skip Wave 0 when ALL 4 criteria are met:**
 1. Change affects a single file only
@@ -64,7 +73,12 @@ Each agent produces an Impact Report using this template:
 **Lead action after Wave 0:**
 1. Collect Impact Reports from all Wave 0 agents
 2. Merge into a single file: `.state/{TASK_ID}/wave-0-impact.md`
-3. Pass `wave-0-impact.md` as context to all agents in the next wave
+3. If Wave 0 finds requirement/design blockers, revise `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`, then get Human approval again before implementation waves
+4. Pass `wave-0-impact.md` as context to all agents in the next wave
+
+### Test-first Scope Rule
+
+Backend/API/service changes require QA to write a failing test before Dev implementation starts. Frontend-only and other non-backend changes follow the risk-based test strategy in `.state/{TASK_ID}/plan.md`; QA may still write tests first, but a red test is mandatory only when the plan or risk profile calls for it.
 
 ---
 
@@ -132,7 +146,7 @@ Agent fails again on re-check --> escalate to Human
 
 ---
 
-## WF-1: Feature (has spec/PRD)
+## WF-1: Feature (canonical TeamLead spec exists)
 
 **Total waves: 5** (Wave 0 through Wave 4 + Validation Gate)
 
@@ -142,7 +156,10 @@ Agent fails again on re-check --> escalate to Human
 - **SA** -- survey schema, modules, dependencies that may be affected
 - **Sn Dev** -- survey codebase, environment, technical feasibility
 
-**Context for agents:** Task description + spec/PRD from Human
+**Context for agents:**
+- Canonical spec: `.state/{TASK_ID}/spec.md`
+- Canonical plan: `.state/{TASK_ID}/plan.md`
+- Original Human PRD/spec, if any, as background only
 
 **Lead action after wave:**
 - Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
@@ -157,7 +174,9 @@ Agent fails again on re-check --> escalate to Human
 
 **Context for agents:**
 - `wave-0-impact.md` (from Wave 0)
-- Original spec/PRD from Human
+- `.state/{TASK_ID}/spec.md` (canonical requirements)
+- `.state/{TASK_ID}/plan.md` (canonical implementation plan)
+- Original Human PRD/spec, if any, as background only
 
 **Lead action after wave:**
 - Merge BA's AC list + SA's design into `.state/{TASK_ID}/wave-1-design.md`
@@ -167,24 +186,28 @@ Agent fails again on re-check --> escalate to Human
 ### Wave 2 -- Write Tests
 
 **Agents:**
-- **QA** -- write tests from AC list; tests MUST FAIL at this point (no implementation yet)
+- **QA** -- write tests from AC list according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL at this point (no implementation yet)
 
 **Context for agents:**
+- `.state/{TASK_ID}/spec.md` (canonical AC and behavior)
+- `.state/{TASK_ID}/plan.md` (task/test strategy)
 - `wave-1-design.md` (AC list + architecture design)
 - `wave-0-impact.md` (affected files for test targeting)
 
 **Lead action after wave:**
 - Save QA's test plan/file list to `.state/{TASK_ID}/wave-2-tests.md`
-- Verify tests exist and fail as expected
+- Verify required backend/API/service tests exist and fail as expected; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
 
 ---
 
 ### Wave 3 -- Implementation
 
 **Agents:**
-- **Dev** -- write code to make QA's tests pass
+- **Dev** -- implement the planned change; make QA's tests pass when tests were added
 
 **Context for agents:**
+- `.state/{TASK_ID}/spec.md` (canonical requirements)
+- `.state/{TASK_ID}/plan.md` (assigned implementation tasks)
 - `wave-1-design.md` (architecture design + AC list)
 - `wave-2-tests.md` (test file locations + what they test)
 - `wave-0-impact.md` (constraints, risks)
@@ -203,7 +226,9 @@ Agent fails again on re-check --> escalate to Human
 - **Sn Dev** -- review code quality + performance + convention compliance (domains: code quality, edge cases, security, performance, convention-code)
 
 **Context for agents:**
-- `wave-1-design.md` (spec/design to review against)
+- `.state/{TASK_ID}/spec.md` (canonical spec to review against first)
+- `.state/{TASK_ID}/plan.md` (canonical plan/task scope)
+- `wave-1-design.md` (architecture design to review after spec compliance)
 - `wave-3-implementation.md` (what was implemented)
 - Changed file list from `git status`
 - Review prompt templates from `review-domains.md`
@@ -219,15 +244,23 @@ Agent fails again on re-check --> escalate to Human
 Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports for checks 1-3, then summarizes for Human.
 
 **Notes:**
-- This is the standard feature workflow when a spec/PRD already exists
+- This is the standard feature workflow after TeamLead Brainstorm/Spec/Plan gates have produced canonical artifacts
 - Wave 1 parallelizes BA + SA because they work independently (BA reads spec, SA reads spec + impact)
 - Wave 4 parallelizes all 3 reviewers since their domains do not overlap
 
 ---
 
-## WF-2: Feature (no spec)
+## WF-2: Feature (started with no spec)
 
-**Total waves: 6** (Wave 0 through Wave 5 + Validation Gate)
+**Total waves: 5** (Wave 0 through Wave 4 + Validation Gate)
+
+WF-2 starts only after TeamLead has already completed:
+
+1. `teamlead-brainstorm.md`
+2. `teamlead-spec.md`
+3. `teamlead-plan.md`
+
+Therefore `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md` must exist before WF-2 begins. BA may refine AC during Wave 1, but BA must not be the first creator of the canonical spec after agents are spawned.
 
 ### Wave 0 -- Impact Check (parallel)
 
@@ -235,74 +268,69 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - **SA** -- survey architecture that may be affected
 - **Sn Dev** -- survey codebase + technical feasibility
 
-**Context for agents:** Task description + raw requirements from Human
+**Context for agents:**
+- Canonical spec: `.state/{TASK_ID}/spec.md`
+- Canonical plan: `.state/{TASK_ID}/plan.md`
+- Raw Human request as background only
 
 **Lead action after wave:**
 - Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
+- If blockers require requirement changes, revise spec/plan and get Human approval again
 
 ---
 
-### Wave 1 -- Create Spec
+### Wave 1 -- Analysis + Design (parallel)
 
 **Agents:**
-- **BA** -- write spec + AC from the requirements Human provided
+- **BA** -- review canonical spec, refine AC/test scenarios, identify gaps
+- **SA** -- design architecture: components, API contracts, data model changes
 
 **Context for agents:**
 - `wave-0-impact.md` (from Wave 0)
-- Raw requirements from Human
+- `.state/{TASK_ID}/spec.md` (canonical requirements)
+- `.state/{TASK_ID}/plan.md` (canonical implementation plan)
 
 **Lead action after wave:**
-- Save BA's spec + AC list to `.state/{TASK_ID}/wave-1-spec.md`
+- Merge BA's AC refinement + SA's design into `.state/{TASK_ID}/wave-1-design.md`
+- If BA/SA finds spec gaps, update `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`, then get Human approval again
 
 ---
 
-### Wave 2 -- Design
+### Wave 2 -- Write Tests
 
 **Agents:**
-- **SA** -- design architecture based on BA's spec
+- **QA** -- write tests from AC according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL
 
 **Context for agents:**
-- `wave-1-spec.md` (BA's spec + AC)
-- `wave-0-impact.md` (affected modules, constraints)
-
-**Lead action after wave:**
-- Save SA's design to `.state/{TASK_ID}/wave-2-design.md`
-
----
-
-### Wave 3 -- Write Tests
-
-**Agents:**
-- **QA** -- write tests from AC; tests MUST FAIL
-
-**Context for agents:**
-- `wave-1-spec.md` (AC list)
-- `wave-2-design.md` (architecture design)
+- `.state/{TASK_ID}/spec.md` (canonical AC and behavior)
+- `.state/{TASK_ID}/plan.md` (task/test strategy)
+- `wave-1-design.md` (architecture design)
 - `wave-0-impact.md` (affected files)
 
 **Lead action after wave:**
-- Save test plan to `.state/{TASK_ID}/wave-3-tests.md`
-- Verify tests fail as expected
+- Save test plan to `.state/{TASK_ID}/wave-2-tests.md`
+- Verify required backend/API/service tests fail as expected; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
 
 ---
 
-### Wave 4 -- Implementation
+### Wave 3 -- Implementation
 
 **Agents:**
-- **Dev** -- write code to make QA's tests pass
+- **Dev** -- implement the planned change; make QA's tests pass when tests were added
 
 **Context for agents:**
-- `wave-2-design.md` (architecture design)
-- `wave-3-tests.md` (test files + what they test)
-- `wave-1-spec.md` (AC list for reference)
+- `.state/{TASK_ID}/spec.md` (canonical requirements)
+- `.state/{TASK_ID}/plan.md` (assigned implementation tasks)
+- `wave-1-design.md` (architecture design)
+- `wave-2-tests.md` (test files + what they test)
 - `wave-0-impact.md` (constraints, risks)
 
 **Lead action after wave:**
-- Save implementation summary to `.state/{TASK_ID}/wave-4-implementation.md`
+- Save implementation summary to `.state/{TASK_ID}/wave-3-implementation.md`
 
 ---
 
-### Wave 5 -- Verify + Review (parallel, per Review Domain)
+### Wave 4 -- Verify + Review (parallel, per Review Domain)
 
 **Agents:**
 - **QA** -- run tests, verify AC coverage, check regression (domain: test coverage)
@@ -310,9 +338,10 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 - **Sn Dev** -- review code quality + performance + convention compliance (domains: code quality, edge cases, security, performance, convention-code)
 
 **Context for agents:**
-- `wave-2-design.md` (design to review against)
-- `wave-1-spec.md` (AC list for coverage check)
-- `wave-4-implementation.md` (what was implemented)
+- `.state/{TASK_ID}/spec.md` (canonical spec to review against first)
+- `.state/{TASK_ID}/plan.md` (canonical plan/task scope)
+- `wave-1-design.md` (design to review after spec compliance)
+- `wave-3-implementation.md` (what was implemented)
 - Changed file list from `git status`
 - Review prompt templates from `review-domains.md`
 
@@ -327,8 +356,8 @@ Lead performs checks 4-5 (Monorepo + State Sync), combines with agent reports fo
 Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes for Human.
 
 **Notes:**
-- Extra wave compared to WF-1 because BA must create spec first (Wave 1), then SA designs from it (Wave 2) -- these are sequential, not parallel
-- Wave 0 still runs parallel (SA + Sn Dev impact) because impact check does not need the spec
+- WF-2 no longer creates a spec inside the agent workflow. TeamLead local gates create the canonical spec before workflow selection.
+- WF-2 exists to preserve routing for tasks that started without a spec, but by the time agents spawn it consumes `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`.
 
 ---
 
@@ -396,7 +425,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 ### Wave 4 -- Verify + Review (parallel, per Review Domain)
 
 **Agents:**
-- **QA** -- verify fix works + no regression + report AC coverage (domain: test coverage)
+- **QA** -- verify reproduction is fixed + regression coverage exists (domain: test coverage)
 - **Sn Dev** -- review code quality + performance (domains: code quality, edge cases, security, performance, convention-code)
 - No SA -- bug fix does not require architecture review
 
@@ -415,7 +444,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 ### Validation Gate
 
 Lead performs checks 4-5 (Monorepo + State Sync). For checks 1-3:
-- Check 1 (AC Coverage): QA report
+- Check 1 (Bug Reproduction/Regression Coverage): QA report
 - Check 2 (Cross-file Consistency): **Skipped** -- no SA in this workflow. Lead does a basic check instead (verify imports/types are consistent in changed files)
 - Check 3 (Convention): Sn Dev report
 
@@ -437,7 +466,10 @@ Summarize for Human.
 - **SA** -- survey architecture + dependencies that refactor may affect
 - **Sn Dev** -- survey current codebase + impact of proposed changes
 
-**Context for agents:** Refactor scope/goal from Human
+**Context for agents:**
+- Architecture-shaping refactors: canonical spec `.state/{TASK_ID}/spec.md` and canonical plan `.state/{TASK_ID}/plan.md`
+- Mechanical maintenance refactors: raw refactor scope/goal from Human is sufficient when there is no behavior, contract, schema, or architecture change
+- Current code state (read relevant files)
 
 **Lead action after wave:**
 - Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
@@ -450,8 +482,9 @@ Summarize for Human.
 - **SA** -- create the new design/architecture for the refactored code
 
 **Context for agents:**
+- Architecture-shaping refactors: `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`
 - `wave-0-impact.md` (affected modules, constraints, risks)
-- Current code state (SA reads relevant files)
+- Mechanical maintenance refactors: raw scope plus current code state
 
 **Lead action after wave:**
 - Save design to `.state/{TASK_ID}/wave-1-design.md`
@@ -464,6 +497,7 @@ Summarize for Human.
 - **Dev** -- refactor code according to SA's new design
 
 **Context for agents:**
+- Architecture-shaping refactors: `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`
 - `wave-1-design.md` (new design/architecture)
 - `wave-0-impact.md` (constraints, affected files)
 
@@ -480,6 +514,7 @@ Summarize for Human.
 - **Sn Dev** -- review code quality + performance improvements (domains: code quality, edge cases, security, performance, convention-code)
 
 **Context for agents:**
+- Architecture-shaping refactors: `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`
 - `wave-1-design.md` (design to verify against)
 - `wave-2-implementation.md` (what was refactored)
 - Changed file list from `git status`
@@ -499,6 +534,7 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - Shorter than feature workflows because there is no BA (no new spec/AC needed)
 - QA verifies existing tests still pass rather than writing new tests
 - Focus is on maintaining behavior while improving structure
+- Architecture-shaping refactors must consume canonical spec/plan. Purely mechanical maintenance may proceed from raw scope when it does not change behavior, contracts, schemas, infra flow, or policy.
 
 ---
 
@@ -512,7 +548,12 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 - **SA** -- survey architecture across ALL affected repos; identify cross-repo contracts
 - **Sn Dev** -- survey codebase in ALL affected repos; check feasibility per repo
 
-**Context for agents:** Task description + which repos are involved
+**Context for agents:**
+- Canonical spec: `.state/{TASK_ID}/spec.md`
+- Canonical plan: `.state/{TASK_ID}/plan.md`
+- Repo list and raw Human request as background only
+
+**Cross-repo exception:** Wave 0 permits read-only cross-repo impact/contract review by SA and Sn Dev because the work is analysis only. These agents must not edit code, format files, run write-producing commands, or make repo-local implementation changes. Implementation remains one agent per repo.
 
 **Lead action after wave:**
 - Merge Impact Reports into `.state/{TASK_ID}/wave-0-impact.md`
@@ -528,7 +569,9 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 
 **Context for agents:**
 - `wave-0-impact.md` (per-repo breakdown)
-- Task description / spec from Human
+- `.state/{TASK_ID}/spec.md` (canonical requirements)
+- `.state/{TASK_ID}/plan.md` (canonical implementation plan)
+- Raw Human request as background only
 
 **Lead action after wave:**
 - Merge into `.state/{TASK_ID}/wave-1-design.md`
@@ -558,8 +601,8 @@ Lead performs checks 4-5, combines with agent reports for checks 1-3, summarizes
 ### Wave 3 -- Consumer Repo (e.g. Frontend) -- SEQUENTIAL within wave, WAITS for Wave 2
 
 **Agents (sequential, not parallel):**
-1. **QA-Frontend** -- write tests for frontend-side AC; tests MUST FAIL
-2. **Dev-Frontend** -- implement frontend code to make tests pass (waits for QA-Frontend to finish)
+1. **QA-Frontend** -- write tests for frontend-side AC according to `.state/{TASK_ID}/plan.md`; failing tests are required only when the plan/risk profile calls for them
+2. **Dev-Frontend** -- implement frontend code after QA completes the planned test work
 
 **Context for agents:**
 - `wave-1-design.md` (frontend-side AC + architecture)
@@ -607,7 +650,7 @@ Combine with agent reports for checks 1-3, summarize for Human.
 - Within Wave 2 and Wave 3, QA writes tests first, then Dev implements -- also sequential
 - Wave 4 parallelizes all reviewers since they have non-overlapping domains and repos
 - Each repo gets its own QA, Dev, and Sn Dev agent -- enforce Monorepo Rule (1 agent = 1 repo)
-- SA is the exception: SA reviews cross-repo consistency but does NOT modify code
+- SA is the read-only exception for cross-repo consistency/contract review and does NOT modify code. Wave 0 Sn Dev may also perform read-only cross-repo feasibility review; implementation remains one agent per repo.
 - If more than 2 repos are involved, add more waves (Wave 2 for dependency repo, Wave 3 for next dependency, Wave 4 for leaf consumer, etc.) -- always dependency-first order
 
 ---
@@ -656,7 +699,10 @@ No code changes are produced, so Validation Gate does not apply.
 - **Sn Dev** only -- design approach + impact check for infrastructure changes
 - No SA -- infra workflows follow the Decision Table (no SA for infra)
 
-**Context for agents:** Infra task description from Human
+**Context for agents:**
+- New infra flow/policy changes: canonical spec `.state/{TASK_ID}/spec.md` and canonical plan `.state/{TASK_ID}/plan.md`
+- Mechanical maintenance (for example version bumps, config cleanup, or non-policy CI edits): raw infra task description from Human is sufficient when there is no new flow, policy, contract, or architecture decision
+- Current infra files and existing CI/Docker/config conventions
 
 **Lead action after wave:**
 - Save Impact Report to `.state/{TASK_ID}/wave-0-impact.md`
@@ -669,8 +715,9 @@ No code changes are produced, so Validation Gate does not apply.
 - **Dev** -- implement the infrastructure changes
 
 **Context for agents:**
+- New infra flow/policy changes: `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`
 - `wave-0-impact.md` (design + constraints from Sn Dev's impact check)
-- Task description from Human
+- Mechanical maintenance: raw Human task description is allowed when Wave 0 classified it as non-policy/non-flow maintenance
 
 **Lead action after wave:**
 - Save implementation summary to `.state/{TASK_ID}/wave-1-implementation.md`
@@ -683,6 +730,7 @@ No code changes are produced, so Validation Gate does not apply.
 - **Sn Dev** -- review code quality + performance + convention compliance + **test coverage (exception)**
 
 **Context for agents:**
+- New infra flow/policy changes: `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md`
 - `wave-0-impact.md` (original design)
 - `wave-1-implementation.md` (what was implemented)
 - Changed file list from `git status`
@@ -710,6 +758,7 @@ Summarize for Human.
 - No SA in any wave -- infra follows Decision Table
 - Sn Dev appears in both Wave 0 (impact/design) and Wave 2 (review) -- these are different sessions with different missions
 - Shortest workflow with Validation Gate (3 waves)
+- New infra flows and policy changes must consume canonical spec/plan. Mechanical maintenance may use raw scope only when it does not introduce new flow, policy, contract, or architecture decisions.
 
 ---
 
@@ -718,7 +767,7 @@ Summarize for Human.
 | WF | Name | Waves | Wave 0 | Validation Gate | Agents involved |
 |----|------|:-----:|:------:|:---------------:|-----------------|
 | WF-1 | Feature (spec) | 5 | SA + Sn Dev | Yes | SA, BA, QA, Dev, Sn Dev |
-| WF-2 | Feature (no spec) | 6 | SA + Sn Dev | Yes | SA, BA, QA, Dev, Sn Dev |
+| WF-2 | Feature (no spec) | 5 | SA + Sn Dev | Yes | SA, BA, QA, Dev, Sn Dev |
 | WF-3 | Bug Fix | 5 | Sn Dev only | Yes | QA, Dev, Sn Dev |
 | WF-4 | Refactor | 4 | SA + Sn Dev | Yes | SA, QA, Dev, Sn Dev |
 | WF-5 | Cross-Repo | 5 | SA + Sn Dev | Yes | SA, BA, QA-per-repo, Dev-per-repo, Sn Dev-per-repo |

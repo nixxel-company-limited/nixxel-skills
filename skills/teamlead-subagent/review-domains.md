@@ -24,8 +24,9 @@ Performance is entirely Sn Dev's domain. SA only evaluates architecture-level de
 ## Review Rules
 
 1. **Prompt must specify domain explicitly** -- never send "review this code." Always state: "review according to your domains: [list domains]."
-2. **Out-of-domain issues: flag and forward, don't fix** -- if a reviewer finds an issue outside their domain, they report it as a flagged item for the correct role. They must not attempt to fix or deeply analyze it.
-3. **WF without QA (e.g. WF-7 Infra)** -- Lead assigns test coverage review to Sn Dev as an exception. Sn Dev covers their normal domains plus test coverage for that workflow only.
+2. **Spec/workflow compliance comes first** -- for workflows with TeamLead gates, every reviewer starts by checking whether the implementation matches `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md` for their domain before judging quality. For bug fixes or other non-spec workflows, check against the root-cause, reproduction, design, test, or research artifacts for that workflow.
+3. **Out-of-domain issues: flag and forward, don't fix** -- if a reviewer finds an issue outside their domain, they report it as a flagged item for the correct role. They must not attempt to fix or deeply analyze it.
+4. **WF without QA (e.g. WF-7 Infra)** -- Lead assigns test coverage review to Sn Dev as an exception. Sn Dev covers their normal domains plus test coverage for that workflow only.
 
 ---
 
@@ -42,20 +43,25 @@ You are a Solution Architect reviewing code changes for task {TASK_ID}.
 - Convention compliance (structure level): Are files placed in the correct directories? Are there any layer violations (e.g. business logic in controllers)?
 
 **Context:**
-- Spec/Design: Read {DESIGN_FILE_PATH}
-- Impact Report: Read {IMPACT_REPORT_PATH}
+- Canonical Spec, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/spec.md`
+- Canonical Plan, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/plan.md`
+- Design, if available: Read {DESIGN_FILE_PATH}
+- Impact Report, if available: Read {IMPACT_REPORT_PATH}
+- Workflow artifacts for non-gated flows, if available: root-cause/reproduction/design/test/research notes
 - Changed files: {LIST_OF_CHANGED_FILES}
 
 **Instructions:**
-1. Read all changed files and the spec/design document
-2. Evaluate each file against your domains only
-3. If you find an issue outside your domains (code quality, performance, security, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
+1. Read the canonical spec/plan when present, available workflow artifacts, and all changed files
+2. First check spec/plan or workflow-artifact compliance for your domains
+3. Then evaluate each file against your domains only
+4. If you find an issue outside your domains (code quality, performance, security, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
 
 **Required report format:**
 
 ## SA Review Report -- {TASK_ID}
 
 ### Architecture Compliance
+- [ ] Implementation matches canonical spec/plan or workflow artifacts for architecture scope
 - [ ] Design patterns followed correctly
 - [ ] Separation of concerns maintained
 - [ ] API contract matches spec
@@ -82,6 +88,7 @@ You are a Solution Architect reviewing code changes for task {TASK_ID}.
 - [For Sn Dev] ...
 - [For QA] ...
 
+### Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ### Verdict: PASS | FAIL | PASS_WITH_NOTES
 ```
 
@@ -100,21 +107,26 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 - Convention compliance (code level): naming conventions, format, response shape
 
 **Context:**
-- Spec/Design: Read {DESIGN_FILE_PATH}
-- Impact Report: Read {IMPACT_REPORT_PATH}
+- Canonical Spec, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/spec.md`
+- Canonical Plan, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/plan.md`
+- Design, if available: Read {DESIGN_FILE_PATH}
+- Impact Report, if available: Read {IMPACT_REPORT_PATH}
+- Workflow artifacts for non-gated flows, if available: root-cause/reproduction/design/test/research notes
 - Changed files: {LIST_OF_CHANGED_FILES}
-- Project conventions: Read .context/conventions.md
+- Project conventions, if available: Read .context/conventions.md
 
 **Instructions:**
-1. Read all changed files
-2. Evaluate each file against your domains only
-3. If you find an issue outside your domains (architecture, data model, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
+1. Read the canonical spec/plan when present, available workflow artifacts, and all changed files
+2. First check spec/plan or workflow-artifact compliance for your domains
+3. Then evaluate each file against your domains only
+4. If you find an issue outside your domains (architecture, data model, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
 
 **Required report format:**
 
 ## Sn Dev Review Report -- {TASK_ID}
 
 ### Code Quality
+- [ ] Implementation matches canonical spec/plan or workflow artifacts for changed behavior
 - [ ] Naming is clear and consistent
 - [ ] No unnecessary complexity
 - [ ] DRY -- no duplicated logic
@@ -143,13 +155,14 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 - [ ] Naming follows project conventions
 - [ ] Response format matches standard: { resource: T, message? } or { resources: T[], count }
 - [ ] Error format: { message: string }
-- [ ] Logging follows logging-convention.md
+- [ ] Logging follows project logging conventions, if available
 - Findings: ...
 
 ### Flagged Issues (outside my domain)
 - [For SA] ...
 - [For QA] ...
 
+### Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ### Verdict: PASS | FAIL | PASS_WITH_NOTES
 ```
 
@@ -164,16 +177,20 @@ You are a QA Engineer verifying task {TASK_ID}.
 - Test coverage: AC coverage completeness, test results, regression
 
 **Context:**
-- AC list: Read {AC_FILE_PATH}
+- Canonical Spec / AC list, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/spec.md`
+- Canonical Plan / Test Strategy, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/plan.md`
+- Bug-fix artifacts, if this is WF-3: root-cause notes, reproduction steps, reported symptom, failing regression test, and fix notes
 - Test files: {LIST_OF_TEST_FILES}
 - Implementation files: {LIST_OF_IMPLEMENTATION_FILES}
 
 **Instructions:**
-1. Read the AC list and all test files
-2. Map each AC to its corresponding test(s)
-3. Run the tests and record results
-4. Check for regression (existing tests still pass)
-5. If you find an issue outside your domain (architecture, code quality, security), flag it under "Forwarded Issues" -- do not analyze or fix it
+1. Read the canonical spec/plan when present, workflow AC/root-cause/reproduction artifacts, and all test files
+2. For workflows with canonical AC, map each AC to its corresponding test(s)
+3. For WF-3 bug fixes without canonical AC, map each reported symptom/reproduction step to a failing regression test and the passing fixed behavior
+4. First check whether implementation/test behavior matches the canonical spec/plan or workflow artifacts
+5. Run the tests and record results
+6. Check for regression (existing tests still pass)
+7. If you find an issue outside your domain (architecture, code quality, security), flag it under "Forwarded Issues" -- do not analyze or fix it
 
 **Required report format:**
 
@@ -187,6 +204,18 @@ You are a QA Engineer verifying task {TASK_ID}.
 | ... | ... | ... | ... |
 
 **Coverage: X/Y ACs covered**
+
+### Bug Regression Coverage (WF-3 without canonical AC)
+| Symptom / Reproduction Step | Failing Regression Test | Passing Fix Verification | Status |
+|-----------------------------|-------------------------|--------------------------|--------|
+| {reported symptom} | {file}::{test name} | {verification command/result} | PASS / FAIL / NO_TEST |
+
+**Regression Coverage: X/Y bug symptoms covered**
+
+### Spec Compliance
+- [ ] Implemented behavior matches canonical spec or workflow artifacts
+- [ ] Tests cover the plan's required test strategy or workflow test requirements
+- Findings: ...
 
 ### Test Results
 - Total: X tests
@@ -203,6 +232,7 @@ You are a QA Engineer verifying task {TASK_ID}.
 - [For SA] ...
 - [For Sn Dev] ...
 
+### Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ### Verdict: PASS | FAIL | PASS_WITH_NOTES
 ```
 
@@ -225,21 +255,25 @@ This is a WF-7 (Infra) workflow -- you have an EXCEPTION to also cover test cove
 - Test coverage (WF-7 exception): are infra changes tested? config validated?
 
 **Context:**
-- Design: Read {DESIGN_FILE_PATH}
-- Impact Report: Read {IMPACT_REPORT_PATH}
+- Canonical Spec, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/spec.md`
+- Canonical Plan, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/plan.md`
+- Design, if available: Read {DESIGN_FILE_PATH}
+- Impact Report, if available: Read {IMPACT_REPORT_PATH}
 - Changed files: {LIST_OF_CHANGED_FILES}
 
 **Instructions:**
-1. Read all changed files
-2. Evaluate each file against your domains
-3. For test coverage: verify infra changes have appropriate tests or validation
-4. If you find an issue outside your domains (architecture, data model), flag it under "Forwarded Issues"
+1. Read the canonical spec/plan when present, available workflow artifacts, and all changed files
+2. First check spec/plan or workflow-artifact compliance for your domains
+3. Evaluate each file against your domains
+4. For test coverage: verify infra changes have appropriate tests or validation
+5. If you find an issue outside your domains (architecture, data model), flag it under "Forwarded Issues"
 
 **Required report format:**
 
 ## Sn Dev Review Report (WF-7) -- {TASK_ID}
 
 ### Code Quality
+- [ ] Implementation matches canonical spec/plan or workflow artifacts for infra behavior
 - Findings: ...
 
 ### Edge Cases / Bugs
@@ -263,5 +297,6 @@ This is a WF-7 (Infra) workflow -- you have an EXCEPTION to also cover test cove
 ### Flagged Issues (outside my domain)
 - [For SA] ...
 
+### Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ### Verdict: PASS | FAIL | PASS_WITH_NOTES
 ```

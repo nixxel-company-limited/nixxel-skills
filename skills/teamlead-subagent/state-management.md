@@ -16,9 +16,9 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
     └── ...                    <- wave-N-{label}.md
 ```
 
-**Gitignore requirement:** `.state/` MUST be in `.gitignore` -- this is local session state, never committed.
+**Local ignore requirement:** `.state/` is local session state and must never be committed. Prefer adding `.state/` to `.git/info/exclude`, which keeps the ignore rule local to the working copy and avoids product config churn.
 
-If `.gitignore` does not contain `.state/`, add it before writing any state files.
+Do not require Lead to edit product config before writing state. Only edit `.gitignore` for `.state/` if the Human explicitly approves it or delegates that config change to the appropriate agent.
 
 ---
 
@@ -35,7 +35,7 @@ File: `.state/teamlead.json`
   "workflow": "WF-1",
   "branch": "feature/THUN-48-product-filter",
   "currentWave": 2,
-  "totalWaves": 4,
+  "totalWaves": 5,
   "waves": {
     "0": {
       "status": "completed",
@@ -64,6 +64,11 @@ File: `.state/teamlead.json`
       "status": "pending",
       "agents": [],
       "outputFile": null
+    },
+    "4": {
+      "status": "pending",
+      "agents": [],
+      "outputFile": null
     }
   },
   "updatedAt": "2026-03-30T14:30:00Z"
@@ -75,7 +80,7 @@ File: `.state/teamlead.json`
 | Field | Type | Description |
 |-------|------|-------------|
 | `stateVersion` | number | Schema version, always `1` for now. Increment on breaking changes. |
-| `taskId` | string | Task ID (e.g., `"THUN-48"`). Used to name the task folder. |
+| `taskId` | string | Task folder ID. Default to a short slug (e.g., `"product-filter"`) unless external tracking or branch naming requires an exact ID such as `"THUN-48"`. |
 | `workflow` | string | Active workflow (e.g., `"WF-1"`, `"WF-3"`). |
 | `branch` | string | Git branch created for this task. |
 | `currentWave` | number | Index of the wave currently being executed (0-based). |
@@ -145,7 +150,7 @@ When to delete state:
 3. Summary delivered to Human
 4. Human acknowledges
 
-Then: delete the entire task folder (`.state/{taskId}/`) and the state file (`.state/teamlead.json`).
+Only after Human acknowledgement: delete the entire task folder (`.state/{taskId}/`) and the state file (`.state/teamlead.json`). Do not delete state immediately after delivering the summary.
 
 ---
 
