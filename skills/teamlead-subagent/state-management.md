@@ -10,6 +10,7 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
 .state/
 ├── teamlead.json              <- state tracker (1 active task)
 └── THUN-XX/                   <- folder per task
+    ├── research.md            <- merged Research Report (Research Gate, before brainstorm)
     ├── wave-0-impact.md       <- merged Impact Report
     ├── wave-1-design.md       <- AC + architecture
     ├── wave-2-tests.md        <- test plan / test file list

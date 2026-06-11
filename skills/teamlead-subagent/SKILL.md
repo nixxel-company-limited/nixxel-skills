@@ -1,6 +1,6 @@
 ---
 name: teamlead-subagent
-description: "TeamLead orchestration — ใช้เมื่อ Human ต้องการ coordinated implementation/delegation สำหรับ product code, tests, config, infra, feature, bug fix, refactor, หรือ behavior/UI/API changes. ไม่ต้อง trigger สำหรับ read-only inspection/status/explanation/lightweight summary/no-edit review/research เว้นแต่ Human ขอ TeamLead orchestration ชัดเจนหรือ delegation มีประโยชน์. งานที่สร้างหรือแก้ behavior ต้อง invoke `superpowers:brainstorming` ก่อนเสมอ แล้ว Lead ค่อยทำ Spec/Plan gates ก่อน delegate; ห้าม Lead เขียน product code เอง."
+description: "TeamLead orchestration — ใช้เมื่อ Human ต้องการ coordinated implementation/delegation สำหรับ product code, tests, config, infra, feature, bug fix, refactor, หรือ behavior/UI/API changes. ไม่ต้อง trigger สำหรับ read-only inspection/status/explanation/lightweight summary/no-edit review/research เว้นแต่ Human ขอ TeamLead orchestration ชัดเจนหรือ delegation มีประโยชน์. งานที่สร้างหรือแก้ behavior ต้องผ่าน Research Gate (spawn research agents ทันทีหลัง classify) และ invoke `superpowers:brainstorming` ก่อนเสมอ แล้ว Lead ค่อยทำ Spec/Plan gates ก่อน delegate; ห้าม Lead เขียน product code เอง."
 ---
 
 # TeamLead-SubAgent v2
@@ -24,13 +24,15 @@ Lead เขียนไฟล์ orchestration ได้ เช่น `.state/{T
 | งานจาก Human | First action ของ Lead |
 |--------------|------------------------|
 | Read-only inspection / status / explanation / lightweight summary / no-edit review / research | ทำตรงได้ ถ้า Human ไม่ได้ขอ TeamLead orchestration และ delegation ไม่ได้ช่วย |
-| สร้าง feature / เพิ่ม component / เพิ่ม functionality / เปลี่ยน behavior / เปลี่ยน UX หรือ API | invoke `superpowers:brainstorming` ทันที แล้วทำ TeamLead Brainstorm Protocol |
+| สร้าง feature / เพิ่ม component / เพิ่ม functionality / เปลี่ยน behavior / เปลี่ยน UX หรือ API | spawn research agents ตาม TeamLead Research Protocol + invoke `superpowers:brainstorming` แล้วทำ TeamLead Brainstorm Protocol |
 | งาน backend/API/service ที่ต้อง implement | หลัง brainstorm/spec/plan แล้ว enforce TDD handoff ใน TeamLead Plan Protocol |
 | Bug fix ที่ Human ต้องการแก้จากอาการผิดปกติ | ใช้ WF-3 Root Cause flow ก่อน spawn Dev |
 | งานตาม implementation plan ที่อนุมัติแล้ว | ใช้ TeamLead wave workflow และ prompt validation |
 | ก่อนสรุปว่าเสร็จ / fixed / tests pass | ใช้ TeamLead Validation Gate และ verification evidence |
 
 **Brainstorming ต้องเริ่มจาก `superpowers:brainstorming` เสมอเมื่อเข้าข่ายสร้างหรือแก้ behavior.** Skill นั้นเป็น entry gate สำหรับ explore intent/design กับ Human; หลังจากนั้น Lead จึงทำ TeamLead Brainstorm Protocol, TeamLead Spec Protocol, และ TeamLead Plan Protocol ก่อน spawn implementation/review agents.
+
+**งานที่เข้าข่าย brainstorm ต้องผ่าน TeamLead Research Protocol ด้วยเสมอ** — spawn research agents (background) ทันทีที่ classify เสร็จ เพื่อให้ Q&A และ proposed design อิงข้อมูลจริงจาก codebase + docs ปัจจุบัน ไม่ใช่การเดา (อ่าน `teamlead-research.md`)
 
 ข้าม TeamLead orchestration ได้สำหรับงาน read-only เช่น summarize, inspect, review แบบไม่แก้ไฟล์, ตอบคำถาม, research เบาๆ, หรือ run command/status ที่ไม่เปลี่ยนระบบ เว้นแต่ Human ขอ orchestration/delegation ชัดเจน
 
@@ -42,6 +44,7 @@ Lead เขียนไฟล์ orchestration ได้ เช่น `.state/{T
 
 | เมื่อไหร่ | อ่านอะไร |
 |-----------|----------|
+| งานต้อง brainstorm (เริ่ม research) | `teamlead-research.md` — Research Gate: spawn research agents ก่อนเข้า Q&A |
 | งานต้อง brainstorm | invoke `superpowers:brainstorming` ก่อน แล้วอ่าน `teamlead-brainstorm.md` — detailed Q&A/design approval protocol |
 | หลัง design approved | `teamlead-spec.md` — spec artifact template + quality gate |
 | หลัง spec approved | `teamlead-plan.md` — implementation plan template + task handoff gate |
@@ -106,16 +109,32 @@ Lead เขียนไฟล์ orchestration ได้ เช่น `.state/{T
 
 ---
 
+## TeamLead Research Protocol (Hard Gate)
+
+ทุกงานที่ Brainstorming Trigger Matrix บอกว่าต้อง brainstorm ต้องผ่าน Research Gate ก่อนเข้า Q&A:
+
+1. อ่าน `teamlead-research.md`
+2. **spawn research agents ทันที** (background, parallel): codebase researcher เสมอ + external docs researcher (Context7/web) เมื่องานแตะ framework/library/external API
+3. ระหว่างรอ research ถาม Human ได้แค่คำถาม intent ระดับสูง 1-2 ข้อ
+4. merge ผลเป็น `.state/{TASK_ID}/research.md` แล้ว Lead อ่านก่อนเข้า Brainstorm Q&A
+
+**Hard stop:** ห้ามเข้า detailed Q&A, ห้าม propose approaches, ห้าม present proposed design จนกว่า `research.md` จะเสร็จและ Lead อ่านแล้ว — design ที่อิงการเดาแพงกว่า research agent หลายเท่า
+
+**ห้าม Lead research ลึกเองแบบ inline** — context ของ Lead ต้องเก็บไว้ orchestrate ให้ spawn agent ทำแทนเสมอ (ยกเว้น scan ผิวเผินเพื่อ classify งานเท่านั้น)
+
+---
+
 ## TeamLead Brainstorm Protocol (Hard Gate)
 
 Protocol นี้ต่อยอดจาก `superpowers:brainstorming` ไม่ใช่ replacement.
 
 เมื่อ Brainstorming Trigger Matrix บอกว่าต้อง brainstorm:
 
-1. **invoke/load `superpowers:brainstorming` ก่อนเสมอ** และทำตาม workflow ของ skill นั้นกับ Human
-2. หลังจากจบ brainstorming gate ของ superpower แล้ว อ่านและทำตาม `teamlead-brainstorm.md`
-3. ใช้ context scan + Q&A จนได้ proposed design ที่ Human approve
-4. ถ้า approved แล้วจึงเข้า TeamLead Spec Protocol
+1. ผ่าน TeamLead Research Protocol ก่อน (spawn research agents — ทำ parallel กับข้อ 2 ได้)
+2. **invoke/load `superpowers:brainstorming` ก่อนเสมอ** และทำตาม workflow ของ skill นั้นกับ Human
+3. หลังจากจบ brainstorming gate ของ superpower แล้ว อ่านและทำตาม `teamlead-brainstorm.md`
+4. ใช้ `research.md` + Q&A จนได้ proposed design ที่ Human approve
+5. ถ้า approved แล้วจึงเข้า TeamLead Spec Protocol
 
 **Hard stop:** ห้ามเขียน implementation plan, ห้าม spawn Dev/QA, ห้ามแก้ product files จนกว่า `superpowers:brainstorming` ถูกใช้ครบตาม workflow และ Human approve proposed design.
 
@@ -169,17 +188,18 @@ Wave 0 สำหรับงานที่ผ่าน brainstorm แล้ว�
 | Read-only research / review / status / explanation | ❌ ทำตรงได้ เว้นแต่ Human ขอ TeamLead orchestration หรือ delegation มีประโยชน์ |
 
 **เมื่องานต้อง Brainstorm:**
-1. **Lead ต้อง invoke `superpowers:brainstorming` ก่อนเริ่ม workflow** — ใช้ skill นั้นเพื่อ explore intent/requirements/design กับ Human
-2. **Lead ต้องทำ TeamLead Brainstorm Protocol เองหลัง superpower brainstorming** — Q&A กับ Human จนได้ approved design
-3. **Lead ต้องทำ TeamLead Spec Protocol** — สร้าง spec artifact, ผ่าน Spec Quality Gate, ส่ง agent review, แก้ findings, แล้วให้ Human approve
-4. **Lead ต้องทำ TeamLead Plan Protocol** — สร้าง implementation plan และผ่าน Plan Quality Gate
-5. ส่ง SA + Sn Dev review plan/impact เพิ่มเติมถ้าจำเป็น (เป็นส่วนหนึ่งของ Wave 0)
-6. แก้ plan ตาม review findings
-7. Human approve changes → เข้า workflow ปกติ
+1. **Lead ต้องผ่าน TeamLead Research Protocol** — spawn research agents (codebase + external docs) เป็น background ทันที (อ่าน `teamlead-research.md`)
+2. **Lead ต้อง invoke `superpowers:brainstorming` ก่อนเริ่ม workflow** — ใช้ skill นั้นเพื่อ explore intent/requirements/design กับ Human
+3. **Lead ต้องทำ TeamLead Brainstorm Protocol เองหลัง superpower brainstorming** — ใช้ `research.md` + Q&A กับ Human จนได้ approved design
+4. **Lead ต้องทำ TeamLead Spec Protocol** — สร้าง spec artifact, ผ่าน Spec Quality Gate, ส่ง agent review, แก้ findings, แล้วให้ Human approve
+5. **Lead ต้องทำ TeamLead Plan Protocol** — สร้าง implementation plan และผ่าน Plan Quality Gate
+6. ส่ง SA + Sn Dev review plan/impact เพิ่มเติมถ้าจำเป็น (เป็นส่วนหนึ่งของ Wave 0)
+7. แก้ plan ตาม review findings
+8. Human approve changes → เข้า workflow ปกติ
 
 **ห้ามข้าม brainstorming สำหรับงานที่เข้าข่าย:**
-- **ไม่มี spec** → invoke `superpowers:brainstorming` → ทำ Brainstorm Protocol เต็มรูปแบบ (Q&A จนได้ approved design + spec)
-- **มี spec แล้ว** (เช่น PRD/Notion/external doc) → invoke `superpowers:brainstorming` → Lead อ่านเป็น context → ทำ Brainstorm Protocol เฉพาะ gaps/ambiguity → เขียน `.state/{TASK_ID}/spec.md` → Human approve ให้เป็น canonical
+- **ไม่มี spec** → spawn research agents → invoke `superpowers:brainstorming` → ทำ Brainstorm Protocol เต็มรูปแบบ (research.md + Q&A จนได้ approved design + spec)
+- **มี spec แล้ว** (เช่น PRD/Notion/external doc) → spawn research agents → invoke `superpowers:brainstorming` → Lead อ่านเป็น context → ทำ Brainstorm Protocol เฉพาะ gaps/ambiguity → เขียน `.state/{TASK_ID}/spec.md` → Human approve ให้เป็น canonical
 - **มีคำว่า "ง่ายๆ", "แค่", "เล็กนิดเดียว"** → ยังต้องทำ Brainstorm Protocol ถ้ามีการสร้างหรือแก้ behavior เพราะ assumption เล็กๆ มักเป็นจุดพัง
 
 ---
@@ -189,21 +209,23 @@ Wave 0 สำหรับงานที่ผ่าน brainstorm แล้ว�
 ```
 1.  เริ่ม conversation → อ่าน state-management.md → เช็ค resume
 2.  รับงาน → classify request (read-only direct vs orchestration/delegation) → วิเคราะห์ (ใช้ Decision Table)
-3.  ต้อง Brainstorm? → invoke `superpowers:brainstorming` ก่อน แล้วทำ TeamLead Brainstorm Protocol:
-    - ไม่มี spec → Q&A → approaches → proposed design → Human approve
-    - มี spec  → Lead อ่านเป็น supporting context → Q&A เฉพาะ gaps → Human approve
-4.  ทำ TeamLead Spec Protocol → `.state/{TASK_ID}/spec.md` → Spec Quality Gate → spec review agent → แก้ findings → Spec Quality Gate ซ้ำ → Human approve
-5.  ทำ TeamLead Plan Protocol → `.state/{TASK_ID}/plan.md` → Plan Quality Gate
-6.  เลือก Workflow → อ่าน workflows.md
-7.  ก่อน spawn → อ่าน validation.md → ผ่าน Prompt Validation
-8.  Spawn ตาม workflow — parallel ทุกที่ที่ไม่มี dependency
-9.  Agent กลับ → review output + เขียน state
-10. ก่อน review wave → อ่าน review-domains.md
-11. Review wave เสร็จ → Validation Gate (อ่าน validation.md)
-12. ทุกอย่างผ่าน → สรุปให้ Human → รอ Human acknowledge → ลบ state
+3.  ต้อง Brainstorm? → Research Gate ก่อน: อ่าน teamlead-research.md → spawn research agents (background)
+    → merge เป็น .state/{TASK_ID}/research.md
+4.  invoke `superpowers:brainstorming` (ทำ parallel กับ step 3 ได้) แล้วทำ TeamLead Brainstorm Protocol:
+    - ไม่มี spec → research.md + Q&A → approaches → proposed design → Human approve
+    - มี spec  → Lead อ่านเป็น supporting context → research.md + Q&A เฉพาะ gaps → Human approve
+5.  ทำ TeamLead Spec Protocol → `.state/{TASK_ID}/spec.md` → Spec Quality Gate → spec review agent → แก้ findings → Spec Quality Gate ซ้ำ → Human approve
+6.  ทำ TeamLead Plan Protocol → `.state/{TASK_ID}/plan.md` → Plan Quality Gate
+7.  เลือก Workflow → อ่าน workflows.md
+8.  ก่อน spawn → อ่าน validation.md → ผ่าน Prompt Validation
+9.  Spawn ตาม workflow — parallel ทุกที่ที่ไม่มี dependency
+10. Agent กลับ → review output + เขียน state
+11. ก่อน review wave → อ่าน review-domains.md
+12. Review wave เสร็จ → Validation Gate (อ่าน validation.md)
+13. ทุกอย่างผ่าน → สรุปให้ Human → รอ Human acknowledge → ลบ state
 ```
 
-**Non-Brainstorm work:** ข้าม step 3-5 เข้า step 6 เลย แต่ bug fix ต้องใช้ WF-3 Root Cause flow ก่อน spawn Dev. Read-only research/review/status/explanation ทำตรงได้ถ้าไม่ต้อง orchestration/delegation.
+**Non-Brainstorm work:** ข้าม step 3-6 เข้า step 7 เลย แต่ bug fix ต้องใช้ WF-3 Root Cause flow ก่อน spawn Dev. Read-only research/review/status/explanation ทำตรงได้ถ้าไม่ต้อง orchestration/delegation.
 
 ---
 
@@ -220,6 +242,7 @@ Wave 0 สำหรับงานที่ผ่าน brainstorm แล้ว�
 ## Context
 - Repo: {repo path}
 - ไฟล์ที่เกี่ยวข้อง: {list files — ต้อง verify ด้วย Glob/Read แล้ว}
+- Research: {สรุปจาก research.md หรือ path ไปหา .state/{TASK_ID}/research.md ถ้ามี}
 - Impact Report: {สรุปจาก Wave 0 หรือ path ไปหา wave-0-impact.md}
 - ผล wave ก่อนหน้า: {สรุป หรือ path ไปหา wave output file}
 

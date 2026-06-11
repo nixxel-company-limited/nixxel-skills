@@ -43,27 +43,21 @@ If classification is uncertain, default to a short brainstorm. A two-question br
 
 ---
 
-## Step 2 -- Scan Real Context First
+## Step 2 -- Ground in Real Research First
 
-Before asking the user detailed questions, inspect enough context to avoid generic questions.
+Before asking the user detailed questions, the Research Gate must have run (see `teamlead-research.md`): research agents spawned in the background covering the codebase (relevant files, routes, services, schemas, tests, configs, patterns, recent changes, constraints) and — when the work touches a framework, library, or external API — current external docs via Context7/web search.
 
-Look for:
-
-- Relevant files, routes, services, schemas, tests, configs
-- Existing patterns and naming conventions
-- Recent related changes
-- Docs or specs that already describe the area
-- Constraints from frameworks, monorepo boundaries, or product architecture
+The Lead does not do this research inline; the Lead reads the merged `.state/{TASK_ID}/research.md` and works from it. If `research.md` does not exist yet for brainstorm-required work, stop and run the Research Gate before continuing — questions and designs built on guesses are exactly what this protocol exists to prevent.
 
 External PRDs, Notion pages, issue descriptions, and design docs are useful inputs, but they are not canonical for TeamLead execution until their relevant requirements are converted into `.state/{TASK_ID}/spec.md` and approved by the Human.
 
-Then tell the user:
+Then tell the user, based on `research.md`:
 
-- What you found
+- What the research found
 - What seems clear
 - What is still ambiguous
 
-Keep this summary short. The point is to ask better questions, not to do full implementation research.
+Keep this summary short — the depth lives in `research.md`; the message to the Human is just the digest that sets up better questions.
 
 ### Scope Decomposition Gate
 
@@ -85,6 +79,8 @@ Do not spend many questions polishing a spec that is too broad to execute safely
 
 Ask one focused question per message unless the user explicitly asked for a batch.
 
+Order questions by risk: if `research.md` surfaced something that could invalidate the request's premise (a referenced model/feature that doesn't exist, a conflicting contract), ask about that first.
+
 Good questions clarify:
 
 - User or system goal
@@ -101,6 +97,7 @@ Avoid:
 
 - Long questionnaires
 - Asking what can be learned by reading the repo
+- Asking anything `research.md` already answers
 - Asking implementation details the Lead can decide from conventions
 - Bundling unrelated product, design, and technical questions together
 

@@ -22,6 +22,8 @@ This file contains the complete wave-by-wave definition of all 7 workflows. Lead
 
 `.state/{TASK_ID}/wave-0-impact.md` is supporting context created from the review findings. It is never the source of truth for requirements, scope, design intent, or the implementation plan.
 
+If `.state/{TASK_ID}/research.md` exists (from the Research Gate, see `teamlead-research.md`), pass it to Wave 0 agents as supporting context so they do not re-discover what research already mapped. Like `wave-0-impact.md`, it is supporting context only — never canonical.
+
 **Wave 0 skip is evaluated only after required gates complete.** A skip decision must never bypass Brainstorm/Spec/Plan gates. Brainstorm-required work (WF-1, WF-2, WF-5) may not skip canonical spec/plan feasibility review. The skip criteria below apply only to non-brainstorm workflows and cases that do not require canonical spec/plan review.
 
 **Skip Wave 0 when ALL 4 criteria are met:**
