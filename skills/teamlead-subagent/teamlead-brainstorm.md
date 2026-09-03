@@ -4,7 +4,7 @@ This file is the detailed protocol for the hard gate summarized in `SKILL.md`.
 
 Use it whenever the user asks for a feature, new component, new functionality, behavior change, UX change, API change, data model change, architecture-shaping refactor, or infra flow design.
 
-Do not use this for read-only inspection, simple status commands, summaries, or bug fixes with a concrete broken symptom. For those bug fixes, use the WF-3 Root Cause flow from `workflows.md`.
+Do not use this for read-only inspection, simple status commands, summaries, or bug fixes with a concrete broken symptom. For those bug fixes, use the WF-3 Root Cause flow from `workflows/wf-3.md`.
 
 ---
 

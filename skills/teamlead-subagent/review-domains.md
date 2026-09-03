@@ -15,6 +15,12 @@ Lead reads this file before spawning review wave agents. Each reviewer must stay
 | **Convention compliance** | structure level: file placement, layer violations | code level: naming, format, response shape | - | Split by level |
 | **Test coverage** | - | - | AC coverage, test completeness, regression | QA only |
 
+### Spawn
+
+SA and Sn Dev reviewers are **one-shot** `opus` background agents: no `name`, `run_in_background: true`. They read the diff and return one report.
+
+The QA Verify Report is **not** a fresh spawn. It comes from the `qa-{TASK_ID}` teammate that is still alive from the implementation loop -- once at the end of the loop, and again after any review fixes land. Spawning a new QA here would throw away the loop's context and re-read everything.
+
 ### Key change from v1
 
 Performance is entirely Sn Dev's domain. SA only evaluates architecture-level decisions (e.g. choosing the wrong caching strategy or wrong data structure at the design level) -- that falls under **Architecture**, not Performance.
@@ -35,6 +41,7 @@ Performance is entirely Sn Dev's domain. SA only evaluates architecture-level de
 ### SA Review Prompt
 
 ```
+<!-- spawn: model=opus mode=one-shot -->
 You are a Solution Architect reviewing code changes for task {TASK_ID}.
 
 **Your review domains (ONLY these):**
@@ -97,6 +104,7 @@ You are a Solution Architect reviewing code changes for task {TASK_ID}.
 ### Sn Dev Review Prompt
 
 ```
+<!-- spawn: model=opus mode=one-shot -->
 You are a Senior Developer reviewing code changes for task {TASK_ID}.
 
 **Your review domains (ONLY these):**
@@ -171,6 +179,7 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 ### QA Verify Prompt
 
 ```
+<!-- delivered to the qa-{TASK_ID} teammate via SendMessage, or included in its spawn prompt -->
 You are a QA Engineer verifying task {TASK_ID}.
 
 **Your review domain (ONLY this):**
@@ -243,6 +252,7 @@ You are a QA Engineer verifying task {TASK_ID}.
 When WF-7 (Infra/Docker/CI) has no QA agent, Lead assigns test coverage to Sn Dev:
 
 ```
+<!-- spawn: model=opus mode=one-shot -->
 You are a Senior Developer reviewing code changes for task {TASK_ID}.
 This is a WF-7 (Infra) workflow -- you have an EXCEPTION to also cover test coverage.
 

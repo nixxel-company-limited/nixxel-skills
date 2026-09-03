@@ -10,11 +10,12 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
 .state/
 ├── teamlead.json              <- state tracker (1 active task)
 └── THUN-XX/                   <- folder per task
-    ├── research.md            <- merged Research Report (Research Gate, before brainstorm)
-    ├── wave-0-impact.md       <- merged Impact Report
-    ├── wave-1-design.md       <- AC + architecture
-    ├── wave-2-tests.md        <- test plan / test file list
-    └── ...                    <- wave-N-{label}.md
+    ├── research.md               <- merged Research Report (Research Gate, before brainstorm)
+    ├── wave-0-impact.md          <- merged Impact Report
+    ├── wave-1-design.md          <- AC + architecture
+    ├── wave-2-implementation.md  <- QA Verify Report + Dev changed files
+    ├── wave-3-review.md          <- merged review reports
+    └── ...                       <- wave-N-{label}.md
 ```
 
 **Local ignore requirement:** `.state/` is local session state and must never be committed. Prefer adding `.state/` to `.git/info/exclude`, which keeps the ignore rule local to the working copy and avoids product config churn.
@@ -41,23 +42,24 @@ File: `.state/teamlead.json`
     "0": {
       "status": "completed",
       "agents": [
-        { "role": "SA", "mission": "impact check", "status": "completed" },
-        { "role": "Sn Dev", "mission": "impact check", "status": "completed" }
+        { "role": "SA", "name": null, "mode": "one-shot", "model": "opus", "mission": "impact check", "status": "completed" },
+        { "role": "Sn Dev", "name": null, "mode": "one-shot", "model": "opus", "mission": "impact check", "status": "completed" }
       ],
       "outputFile": ".state/THUN-48/wave-0-impact.md"
     },
     "1": {
       "status": "completed",
       "agents": [
-        { "role": "BA", "mission": "analyze AC from spec", "status": "completed" },
-        { "role": "SA", "mission": "design API + data model", "status": "completed" }
+        { "role": "BA", "name": null, "mode": "one-shot", "model": "fable", "mission": "analyze AC from spec", "status": "completed" },
+        { "role": "SA", "name": null, "mode": "one-shot", "model": "fable", "mission": "design API + data model", "status": "completed" }
       ],
       "outputFile": ".state/THUN-48/wave-1-design.md"
     },
     "2": {
       "status": "in_progress",
       "agents": [
-        { "role": "QA", "mission": "write tests from AC", "status": "running" }
+        { "role": "QA", "name": "qa-THUN-48", "mode": "teammate", "model": "opus", "mission": "write tests from AC, verify Dev until green", "status": "running" },
+        { "role": "Dev", "name": "dev-THUN-48", "mode": "teammate", "model": "opus", "mission": "implement Task 1-2 until QA tests pass", "status": "running" }
       ],
       "outputFile": null
     },
@@ -80,7 +82,7 @@ File: `.state/teamlead.json`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `stateVersion` | number | Schema version, always `1` for now. Increment on breaking changes. |
+| `stateVersion` | number | Schema version, always `1` for now. Increment on breaking changes. The `name`/`mode`/`model` agent fields are additive, so `1` still applies. |
 | `taskId` | string | Task folder ID. Default to a short slug (e.g., `"product-filter"`) unless external tracking or branch naming requires an exact ID such as `"THUN-48"`. |
 | `workflow` | string | Active workflow (e.g., `"WF-1"`, `"WF-3"`). |
 | `branch` | string | Git branch created for this task. |
@@ -88,8 +90,11 @@ File: `.state/teamlead.json`
 | `totalWaves` | number | Total number of waves planned for this workflow. |
 | `waves` | object | Keyed by wave index (`"0"`, `"1"`, ...). Each wave has `status`, `agents`, `outputFile`. |
 | `waves[N].status` | string | Wave status: `pending` / `in_progress` / `completed` / `failed` |
-| `waves[N].agents` | array | Array of agent entries with `role`, `mission`, `status`. |
+| `waves[N].agents` | array | Array of agent entries with `role`, `name`, `mode`, `model`, `mission`, `status`. |
 | `waves[N].agents[].role` | string | Agent role: `SA`, `BA`, `Sn Dev`, `Dev`, `QA` |
+| `waves[N].agents[].name` | string or null | Teammate name (`dev-{taskId}`, `qa-{taskId}`, or cross-repo `dev-api` / `qa-web`). `null` for one-shot agents. Required for re-spawn after a context reset. |
+| `waves[N].agents[].mode` | string | Spawn mode: `one-shot` (no `name`, `run_in_background: true`) or `teammate` (has `name`, no `run_in_background`). |
+| `waves[N].agents[].model` | string | Model passed on the spawn: `opus` or `fable`, per the Model Policy in `SKILL.md`. Never empty. |
 | `waves[N].agents[].mission` | string | Short description of the agent's task. |
 | `waves[N].agents[].status` | string | Agent status: `pending` / `running` / `completed` / `failed` |
 | `waves[N].outputFile` | string or null | Path to the wave output markdown file. `null` until wave completes. |
@@ -115,14 +120,16 @@ File: `.state/teamlead.json`
 
 ### Atomic Write
 
-Always write state files atomically to prevent corruption:
+Always write state files atomically to prevent corruption, in **one** Bash command (write the temp file and rename it in the same invocation, so it costs one turn, not two):
 
-```
-1. Write content to .state/teamlead.json.tmp
-2. Rename .state/teamlead.json.tmp to .state/teamlead.json
+```bash
+cat > .state/teamlead.json.tmp <<'EOF'
+{ ...json... }
+EOF
+mv .state/teamlead.json.tmp .state/teamlead.json
 ```
 
-Never write directly to `teamlead.json` -- a crash mid-write would corrupt the file.
+Never write directly to `teamlead.json` -- a crash mid-write would corrupt the file. When a wave output file is written at the same time, put it in the same command.
 
 ### When to Write
 
@@ -138,7 +145,7 @@ Never write directly to `teamlead.json` -- a crash mid-write would corrupt the f
 When a wave completes, Lead summarizes all agent outputs into a single markdown file:
 
 - File path: `.state/{taskId}/wave-{N}-{label}.md`
-- Label convention: `impact`, `design`, `tests`, `implementation`, `review`
+- Label convention: `impact`, `design`, `implementation`, `review`, plus `root-cause` for WF-3
 - Content: Lead-written summary combining all agent outputs for that wave
 - This file becomes context input for subsequent waves
 
@@ -148,8 +155,9 @@ When to delete state:
 
 1. Task is fully complete
 2. Validation Gate passed
-3. Summary delivered to Human
-4. Human acknowledges
+3. Every teammate has received `shutdown_request` (the Validation Gate does this after all items PASS; if the Human cancels mid-task, shut the teammates down first)
+4. Summary delivered to Human
+5. Human acknowledges
 
 Only after Human acknowledgement: delete the entire task folder (`.state/{taskId}/`) and the state file (`.state/teamlead.json`). Do not delete state immediately after delivering the summary.
 
@@ -178,6 +186,10 @@ Check: does .state/teamlead.json exist?
       (conversation reset = agent was killed, cannot be running)
         |
         v
+      Mark every agent with mode="teammate" as "failed" regardless of
+      recorded status -- teammates never survive a context reset or /resume
+        |
+        v
       Identify stuck point:
         - Which wave failed?
         - Which agents failed?
@@ -191,6 +203,9 @@ Check: does .state/teamlead.json exist?
         v
       Human says YES (resume):
         - Re-spawn only failed agents
+        - Re-spawn teammates with the SAME name recorded in state, and
+          re-spawn the partner too -- a Dev/QA pair is always re-created
+          together, never one half of it
         - Pass all completed wave output files as context
         - Continue from the failed wave
         |
@@ -208,6 +223,7 @@ When resuming, provide re-spawned agents with:
 1. All completed wave output files (read each `.md` file)
 2. The original task description (from Human's previous request, reconstructed from state + output files)
 3. Any partial output from the failed wave (if the output file was partially written)
+4. For a re-spawned teammate: its recorded `name` and `mission`, plus the Partner section pointing at the freshly re-spawned partner
 
 This ensures agents have full context even after a conversation reset.
 
@@ -220,6 +236,7 @@ This ensures agents have full context even after a conversation reset.
 | **State file parse fail** (invalid JSON) | Notify Human: "State file corrupted." Backup as `teamlead.json.bak`. Start fresh -- ask Human for task context. |
 | **Agent timeout / crash** | Mark agent `status = "failed"` in state. Mark wave `status = "failed"`. Ask Human: "Agent {role} ({mission}) crashed -- re-spawn?" |
 | **Human cancel mid-task** | Ask Human: "Cleanup? Delete state files + task folder?" If yes, delete `.state/{taskId}/` and `teamlead.json`. If branch should be reverted, confirm with Human before any destructive git operation. |
+| **Teammate idle notification never arrives / teammate errored** | Mark that agent `status = "failed"` in state. Ask Human: "Teammate {name} ({mission}) is not responding -- re-spawn the pair?" Re-spawn both halves together, never one alone. |
 | **Output file missing** (state says completed but file not found) | Wave is incomplete. Set wave `status = "failed"`. Re-run the entire wave. |
 | **State vs output files mismatch** (output files exist but state disagrees) | **Trust output files.** Read all existing `wave-*.md` files in the task folder. Rebuild state from output files. Notify Human of the discrepancy. |
 | **Task folder missing** (state exists but no folder) | Treat as fresh start. Delete stale state file. Notify Human. |

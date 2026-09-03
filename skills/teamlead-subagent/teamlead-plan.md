@@ -42,29 +42,30 @@ Keep the spec and plan in the same `.state/{TASK_ID}/` directory so every wave c
 {2-5 bullets describing the chosen approach and boundaries.}
 
 ## Files and Ownership
-| Area | Files / Paths | Owner Role | Notes |
-|------|---------------|------------|-------|
-| ... | ... | Dev / QA / SA / Sn Dev | ... |
+| Area | Files / Paths | Owner | Notes |
+|------|---------------|-------|-------|
+| ... | ... | `dev-{TASK_ID}` / `qa-{TASK_ID}` / SA / Sn Dev | ... |
 
 ## Agent Waves
-### Wave 0 -- Impact / Feasibility
-- Agents: ...
+### Wave 0 -- Impact
+- Agents: {role} (mode, model, name) -- e.g. `SA (one-shot, opus, -)`, `Sn Dev (one-shot, opus, -)`
 - Inputs: spec + plan
 - Outputs: impact report / blockers / recommendations
 - Note: Wave 0 output is supporting context for feasibility, risk, and sequencing. It does not supersede the canonical approved spec or this plan; requirement changes found in Wave 0 must go back through spec revision and Human approval.
 
-### Wave 1 -- Tests / Design Refinement
-- Agents: ...
+### Wave 1 -- Design
+- Agents: {role} (mode, model, name) -- e.g. `BA (one-shot, fable, -)`, `SA (one-shot, fable, -)`
 - Inputs: ...
 - Outputs: ...
 
-### Wave 2 -- Implementation
-- Agents: ...
+### Wave 2 -- Implementation Loop
+- Agents: {role} (mode, model, name) -- e.g. `QA (teammate, opus, qa-{TASK_ID})`, `Dev (teammate, opus, dev-{TASK_ID})`
+- Loop: QA and Dev run the red/green loop themselves -- see `teammate-loops.md` for the message protocol, the 3-round cap, and the escalation path back to Lead
 - Inputs: ...
 - Outputs: ...
 
-### Wave 3 -- Review / Verification
-- Agents: ...
+### Wave 3 -- Review
+- Agents: {role} (mode, model, name) -- e.g. `SA (one-shot, opus, -)`, `Sn Dev (one-shot, opus, -)`
 - Inputs: ...
 - Outputs: ...
 
@@ -134,6 +135,8 @@ Before choosing workflow and spawning agents, Lead must verify:
 - Goal matches the approved spec
 - Affected areas and file ownership are mapped
 - Agent waves are listed with inputs and outputs
+- Every agent has a spawn mode and a model per the Model Policy in `SKILL.md`; the Dev/QA teammate names are listed
+- The Dev/QA loop escalation path (3 rounds -> Lead) is stated
 - Every Acceptance Criteria item maps to at least one task or test scenario
 - Task dependencies are explicit
 - Parallelizable tasks are identified
@@ -165,7 +168,7 @@ Fix issues inline before spawning agents.
 
 After the plan passes the quality gate, Lead chooses the execution mode:
 
-- **Wave/Subagent execution:** default for implementation work; spawn agents according to `workflows.md`.
+- **Wave/Subagent execution:** default for implementation work; spawn agents according to `workflows/common.md` + the selected `workflows/wf-N.md`. Implementation runs as a `qa-{TASK_ID}` + `dev-{TASK_ID}` teammate pair; impact, design, and review agents are one-shot.
 - **Inline execution:** only for tiny, low-risk orchestration-only work where no product files are edited by Lead.
 - **Human handoff:** when the user wants the plan/spec but not execution.
 
@@ -212,10 +215,11 @@ Do not make subagents rediscover the whole spec or plan. Curate the exact sectio
 
 After the plan passes the quality gate:
 
-1. Read `workflows.md` and select the workflow
-2. Read `validation.md` before every spawn
-3. Pass both spec and plan paths to each agent
-4. Require agents to report changed files, verification commands, and blockers
-5. Keep `.state/{TASK_ID}/` updated after each wave
+1. Select the workflow from the Decision Table, then read `workflows/common.md` and only the matching `workflows/wf-N.md` -- together with `validation.md`, `review-domains.md`, and `teammate-loops.md` in the same turn, since all of them will be needed before the first spawn
+2. Run the Prompt Validation Checklist (`validation.md`) before every spawn
+3. Follow `teammate-loops.md` when spawning the Dev/QA pair
+4. Pass both spec and plan paths to each agent
+5. Require agents to report changed files, verification commands, and blockers
+6. Keep `.state/{TASK_ID}/` updated after each wave
 
 The plan can evolve after Wave 0 if reviewers find blockers, but Wave 0 remains supporting context. It does not replace the canonical approved spec or plan, and requirement changes must go back through the spec and Human approval.

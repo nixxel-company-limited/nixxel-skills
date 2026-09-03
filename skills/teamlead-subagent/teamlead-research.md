@@ -31,7 +31,7 @@ Instead, the Lead spawns research agents (background, parallel), merges their fi
 
 ## Who to Spawn
 
-Spawn in background, parallel where both apply:
+Researchers are **one-shot** agents: no `name`, `model: "opus"`, `run_in_background: true`, spawned in parallel where both apply. They read a lot and return one report; nobody messages them again, so a teammate context window would sit idle at full cost.
 
 | Researcher | Role | When | Covers |
 |------------|------|------|--------|
@@ -47,6 +47,7 @@ The external researcher should verify versions against the repo (`package.json`,
 ## Research Agent Prompt Template
 
 ```
+<!-- spawn: model=opus mode=one-shot -->
 คุณคือ Sn Dev — research ก่อนออกแบบ ไม่แก้ไฟล์ใดๆ ทั้งสิ้น (read-only)
 
 ## งาน
