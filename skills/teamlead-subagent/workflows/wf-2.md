@@ -66,6 +66,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - `wave-0-impact.md` (affected files, constraints)
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Run `git diff --stat` and check the changed files against the plan's expected file list
 - Verify required backend/API/service tests were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
@@ -98,7 +99,9 @@ AC and test coverage come from the `qa-{TASK_ID}` teammate's Verify Report, not 
 
 ### Validation Gate
 
-Lead performs checks 4-5, takes check 1 from the `qa-{TASK_ID}` report and checks 2-3 from the reviewer reports. All checks PASS → `shutdown_request` to both teammates → summarize for Human.
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
+
+Lead performs checks 4-6, takes check 1 from the `qa-{TASK_ID}` report and checks 2-3 from the reviewer reports. All checks PASS → `shutdown_request` to both teammates → summarize for Human.
 
 **Notes:**
 - WF-2 no longer creates a spec inside the agent workflow. TeamLead local gates create the canonical spec before workflow selection.

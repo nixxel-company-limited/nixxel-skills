@@ -57,6 +57,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - `wave-0-impact.md` (affected files, constraints, risks)
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Run `git diff --stat`, then read the files the plan said would change -- Dev drifting outside the planned files is the most common problem to catch here
 - Verify required backend/API/service tests existed and were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
@@ -91,7 +92,9 @@ Test coverage and AC coverage come from the `qa-{TASK_ID}` teammate's Verify Rep
 
 ### Validation Gate
 
-Lead performs checks 4-5 (Monorepo + State Sync), takes check 1 from the `qa-{TASK_ID}` report (re-verified after any fixes) and checks 2-3 from the SA/Sn Dev reports. All checks PASS → `shutdown_request` to `qa-{TASK_ID}` and `dev-{TASK_ID}` → summarize for Human.
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
+
+Lead performs checks 4-6 (Monorepo + State Sync), takes check 1 from the `qa-{TASK_ID}` report (re-verified after any fixes) and checks 2-3 from the SA/Sn Dev reports. All checks PASS → `shutdown_request` to `qa-{TASK_ID}` and `dev-{TASK_ID}` → summarize for Human.
 
 **Notes:**
 - This is the standard feature workflow after TeamLead Brainstorm/Spec/Plan gates have produced canonical artifacts

@@ -35,6 +35,7 @@ No QA partner in this workflow, so there is no pair loop: Dev implements, verifi
 - Mechanical maintenance: raw Human task description is allowed when Wave 0 classified it as non-policy/non-flow maintenance
 
 **Lead action after wave:**
+- Dev works through the plan's Batch Order without returning to the Lead between batches; with no QA partner the Lead runs each batch's verification command itself, and Dev commits per the Commit Plan once that verification passes; the Convention Anchor from `research.md` is in the prompt
 - Save implementation summary to `.state/{TASK_ID}/wave-1-implementation.md`
 - Keep `dev-{TASK_ID}` alive through Wave 2 and the Validation Gate
 
@@ -63,7 +64,9 @@ No QA partner in this workflow, so there is no pair loop: Dev implements, verifi
 
 ### Validation Gate
 
-Lead performs checks 4-5. For checks 1-3:
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once. With no QA teammate, the Lead runs it and writes `final-verification.md` itself.
+
+Lead performs checks 4-6. For checks 1-3:
 - Check 1 (AC Coverage): Covered by Sn Dev (exception) -- there is no QA teammate in this workflow
 - Check 2 (Cross-file Consistency): **Skipped** -- no SA in this workflow. Lead does a basic check
 - Check 3 (Convention): Sn Dev report

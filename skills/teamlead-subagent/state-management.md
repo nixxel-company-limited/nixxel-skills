@@ -38,6 +38,11 @@ File: `.state/teamlead.json`
   "branch": "feature/THUN-48-product-filter",
   "currentWave": 2,
   "totalWaves": 5,
+  "batchOrder": "1,2,3",
+  "currentBatch": "2",
+  "commits": [
+    { "unit": 1, "hash": "abc1234", "message": "feat(filter): add product filter query schema + route", "batch": "1" }
+  ],
   "waves": {
     "0": {
       "status": "completed",
@@ -82,12 +87,15 @@ File: `.state/teamlead.json`
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `stateVersion` | number | Schema version, always `1` for now. Increment on breaking changes. The `name`/`mode`/`model` agent fields are additive, so `1` still applies. |
+| `stateVersion` | number | Schema version, always `1` for now. Increment on breaking changes. The `name`/`mode`/`model` agent fields and the `batchOrder` / `currentBatch` / `commits` fields are additive, so `1` still applies. |
 | `taskId` | string | Task folder ID. Default to a short slug (e.g., `"product-filter"`) unless external tracking or branch naming requires an exact ID such as `"THUN-48"`. |
 | `workflow` | string | Active workflow (e.g., `"WF-1"`, `"WF-3"`). |
 | `branch` | string | Git branch created for this task. |
 | `currentWave` | number | Index of the wave currently being executed (0-based). |
 | `totalWaves` | number | Total number of waves planned for this workflow. |
+| `batchOrder` | string | The plan's Batch Order as a comma-separated list of batch ids (e.g. `"1,2,3"`). Additive field. |
+| `currentBatch` | string | Id of the batch the pair is working on right now (e.g. `"2"`). Lets a resume know where the loop stopped. Additive field. |
+| `commits` | array | Commits made so far, one entry per Commit Plan unit: `{ "unit": 1, "hash": "abc1234", "message": "...", "batch": "1" }`. Lead appends an entry when Dev reports a commit. Additive field. |
 | `waves` | object | Keyed by wave index (`"0"`, `"1"`, ...). Each wave has `status`, `agents`, `outputFile`. |
 | `waves[N].status` | string | Wave status: `pending` / `in_progress` / `completed` / `failed` |
 | `waves[N].agents` | array | Array of agent entries with `role`, `name`, `mode`, `model`, `mission`, `status`. |
@@ -137,6 +145,7 @@ Never write directly to `teamlead.json` -- a crash mid-write would corrupt the f
 |---------|--------|
 | Wave starts | Set `waves[N].status = "in_progress"`, set agents to `running`, write state |
 | Agent returns | Update agent `status` to `completed` or `failed`, write state |
+| Dev reports a commit | Append the entry to `commits` (`unit`, `hash`, `message`, `batch`), advance `currentBatch`, write state |
 | Wave completes (all agents done) | Set `waves[N].status = "completed"`, write output file, write state |
 | Wave fails (any agent failed, not recoverable) | Set `waves[N].status = "failed"`, write state |
 
@@ -206,6 +215,10 @@ Check: does .state/teamlead.json exist?
         - Re-spawn teammates with the SAME name recorded in state, and
           re-spawn the partner too -- a Dev/QA pair is always re-created
           together, never one half of it
+        - Tell the re-spawned pair which commit units already exist (from
+          `commits`: unit, hash, message) and which batch was in progress
+          (`currentBatch` within `batchOrder`), so they continue from the
+          next batch instead of redoing committed work
         - Pass all completed wave output files as context
         - Continue from the failed wave
         |
@@ -224,6 +237,7 @@ When resuming, provide re-spawned agents with:
 2. The original task description (from Human's previous request, reconstructed from state + output files)
 3. Any partial output from the failed wave (if the output file was partially written)
 4. For a re-spawned teammate: its recorded `name` and `mission`, plus the Partner section pointing at the freshly re-spawned partner
+5. The commit units already landed (`commits`) and the batch that was in progress (`currentBatch` / `batchOrder`), so the pair resumes at the next batch
 
 This ensures agents have full context even after a conversation reset.
 

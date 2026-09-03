@@ -82,15 +82,41 @@ Keep the spec and plan in the same `.state/{TASK_ID}/` directory so every wave c
 - Command: `...`
 - Expected result: ...
 
+## Convention Anchor
+- Reference feature: {name} -- {why it is the standard for this area}
+- Examples per layer: route `{path}`, schema `{path}`, service `{path}`, repository `{path}`, test `{path}`, component/text `{path}` (from research.md)
+
+## Batch Order
+| Batch | Tasks | Test type (fast / heavy) | Parallel-safe? | Depends on |
+|-------|-------|--------------------------|:--------------:|------------|
+| 1 | Task 1, Task 2 | fast | no | -- |
+| 2 | Task 3 | heavy | no | Batch 1 |
+(Batches with heavy tests are always sequential. Mark parallel-safe only when every batch in the group has fast tests only and touches disjoint modules.)
+
+## Test Classification
+| Test group | Type | RED before implement? | Run scope during the loop | Command |
+|------------|:----:|:---------------------:|---------------------------|---------|
+| {new unit tests} | fast | yes -- new file only | batch tests + touched module | `{cmd}` |
+| {API/integration tests hitting DB} | heavy | no (RED assumed: endpoint does not exist yet) | once after implement, batch scope only | `{cmd}` |
+| {bug-fix regression test} | fast/heavy | yes -- always, proves reproduction | that test only | `{cmd}` |
+| E2E | heavy | no | Final Verification only | `{cmd}` |
+
 ## Test Strategy
 - Unit:
 - Integration:
-- E2E:
-- Manual / exploratory:
+- E2E: run once in Final Verification, never inside the loop
+- Manual / exploratory: {cases auto tests cannot cover -- these are what the Human will test at the end}
 
 ## TDD Requirements
-- Backend/API/service changes: QA writes failing tests before Dev implementation
+- Backend/API/service changes: QA writes tests before Dev implementation; fast tests must be seen RED, heavy tests may skip the pre-run when failure is certain
 - Frontend-only changes: tests required when behavior is non-trivial or regression risk is meaningful
+
+## Commit Plan
+| Commit unit | Covers | Message |
+|-------------|--------|---------|
+| 1 | Batch 1 (Task 1-2) | `feat(refunds): add export query schema + admin route` |
+| 2 | Batch 2 (Task 3) | `feat(refunds): build xlsx export service` |
+(A commit unit is a readable step of the feature -- it may span several tasks and loop rounds. Do not commit per task or per round. The sequence should read as a story a reviewer can follow commit by commit.)
 
 ## Risks / Sequencing Notes
 - ...
@@ -141,6 +167,11 @@ Before choosing workflow and spawning agents, Lead must verify:
 - Task dependencies are explicit
 - Parallelizable tasks are identified
 - Backend/API/service TDD requirements are explicit when applicable
+- Convention Anchor is named with example paths per layer (from research.md); no Dev/QA prompt will have to guess the repo standard
+- Every test group is classified fast or heavy, with RED expectation and loop run scope
+- Batch Order is listed; batches with heavy tests are sequential; parallel-safe groups are justified
+- Commit Plan groups tasks into readable commit units with intended messages (no per-task, per-round commits)
+- Manual/exploratory cases that auto tests cannot cover are listed for the Human summary
 - Verification commands are listed where known
 - No placeholders remain
 - Monorepo constraints are represented

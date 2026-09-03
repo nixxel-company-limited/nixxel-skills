@@ -20,16 +20,20 @@ The spawn rules (what makes a teammate, naming, no `run_in_background`, `model: 
 ```
 Lead spawns qa-{id} and dev-{id} together (same message, both model=opus, both named)
   |
-qa-{id}: write failing tests for the assigned AC slice
-  -> run them, confirm RED
-  -> SendMessage dev-{id}: "tests ready" + file list + how to run
+qa-{id}: write tests for the assigned batch (AC slice), following the Convention Anchor's test pattern
+  -> fast tests (no DB/infra): run ONLY the new test file(s), confirm RED
+  -> heavy tests (DB/infra/E2E): do NOT pre-run when failure is certain; write them and note "RED assumed: <why>"
+     (exception: a bug-fix regression test is always run once to prove reproduction)
+  -> SendMessage dev-{id}: "tests ready" + file list + which are fast/heavy + how to run each
   |
-dev-{id}: implement to make those tests pass (stay inside the plan's task slice)
-  -> run tests locally
+dev-{id}: implement to make those tests pass (stay inside the plan's task slice, match the Convention Anchor)
+  -> run the fast tests for this batch; run the batch's heavy tests once, after the implementation is complete
   -> SendMessage qa-{id}: "implemented" + changed files + test output
   |
-qa-{id}: run full relevant suite + AC coverage check
-  -> PASS  -> write QA Verify Report -> SendMessage main (Lead) with report -> stop
+qa-{id}: run the batch's tests + the touched module's existing tests (not the whole repo)
+  -> PASS  -> tell dev-{id} which commit unit is complete (per the plan's Commit Plan)
+              -> dev-{id} commits that unit -> QA writes QA Verify Report (incl. test diff since RED + run scope)
+              -> SendMessage main (Lead) with report -> next batch, or stop if none
   -> FAIL  -> SendMessage dev-{id}: exact failing tests + expected vs actual   (round 2, then 3)
   |
 after 3 failed rounds:
@@ -38,6 +42,12 @@ after 3 failed rounds:
 ```
 
 Frontend-only or other non-backend scope follows the plan's risk-based test strategy: QA may start with tests or with a verification checklist, but the message protocol and the 3-round cap are the same.
+
+**Batches, not waves.** One pair works through the plan's batches in order without returning to the Lead between batches — the Lead hears from QA after each commit unit and at the end. Two pairs run in parallel only when the plan marks both batches parallel-safe (fast tests only, disjoint modules). Any batch with heavy tests runs alone, because two agents hitting the same DB/containers corrupt each other's results.
+
+**Independence inside the loop.** QA owns the tests: it never weakens an assertion, drops a case, or skips a test because Dev asked. If Dev believes a test is wrong, Dev explains why; QA decides; if they still disagree, QA escalates to the Lead with both positions. Dev never edits test files; QA never edits implementation. The QA Verify Report includes the diff of the test files since RED so the Lead can see the tests were not softened.
+
+**Full regression and E2E run once.** The pair never runs the whole suite or E2E per round. After the last batch, the Final Verification wave (see `workflows/common.md`) runs the full unit suite, then the heavy suite, then E2E, one time — QA reports failures back to Dev, and only the failing tests are re-run after the fix.
 
 **Why cap at 3 rounds:** two agents can loop forever on a spec ambiguity that neither can resolve. Three rounds is enough to fix genuine implementation slips; anything that survives three rounds is almost always a requirements or plan problem, which is the Lead's job, not the pair's.
 
@@ -93,30 +103,35 @@ Fill these in, run the Prompt Validation Checklist, then spawn both in the same 
 คุณคือ QA — เขียน test จาก AC แล้ว verify งานของ Dev จนผ่าน
 
 ## งาน
-เขียน test สำหรับ AC: {AC list หรือ path ไป spec.md section}
-ตาม test strategy ใน `.state/{TASK_ID}/plan.md` — backend/API/service tests ต้อง FAIL ก่อน (ยังไม่มี implementation)
+เขียน test สำหรับ batch: {Batch N — AC list หรือ path ไป spec.md section} แล้วทำ batch ถัดไปตามลำดับใน plan
+ตาม Test Classification ใน `.state/{TASK_ID}/plan.md`:
+- fast (ไม่แตะ DB/infra): เขียนแล้ว run เฉพาะไฟล์ใหม่ให้เห็น RED ก่อน
+- heavy (hit DB/infra/E2E): เขียนไว้ ไม่ต้อง run ก่อนถ้าแน่ใจว่าแดง ระบุเหตุผล; run หลัง Dev implement เสร็จ
+- bug-fix regression test: run ให้เห็น RED เสมอ (หลักฐาน reproduce)
 
 ## Context
 - Repo: {repo path} — `cd {repo}` ก่อนทำงาน
-- Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md`
+- Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md` (Test Classification, Batch Order, Commit Plan)
 - Design: `.state/{TASK_ID}/wave-1-design.md`   Impact: `.state/{TASK_ID}/wave-0-impact.md`
-- Test convention: {path/ตัวอย่าง test ที่มีอยู่ — verify แล้ว}
-- Test command: `{command}`
+- Convention Anchor: {feature ต้นแบบ + path ไฟล์ test ตัวอย่าง — test ใหม่ต้องใช้ pattern เดียวกัน: setup, mocking, naming, โครงสร้าง}
+- Test commands: fast `{command}` / heavy `{command}` (heavy ห้าม run ซ้อนกับใคร)
 
 ## ข้อจำกัด
 - ทำงานเฉพาะใน {repo} เท่านั้น แก้ได้เฉพาะ test files
 - ห้ามแก้ implementation code — ถ้าเจอบั๊ก ส่งให้ dev-{TASK_ID}
+- **ห้ามผ่อน assertion / ลบ case / skip test ตามคำขอ Dev** — ถ้า Dev บอกว่า test ผิด ให้พิจารณาเอง ถ้ายังเห็นต่าง escalate Lead
+- run test เท่าที่จำเป็น: เฉพาะ test ของ batch + test เดิมของ module ที่แตะ ไม่ run ทั้ง repo ไม่ run E2E (มี Final Verification แยกตอนท้าย)
 
 ## Partner
-- `dev-{TASK_ID}` — คุณเริ่มก่อน: test RED แล้ว SendMessage บอก dev-{TASK_ID} ว่า test อยู่ไฟล์ไหน รันยังไง
-- เมื่อ dev-{TASK_ID} แจ้งว่า implement แล้ว → รัน suite ที่เกี่ยวข้อง + ตรวจ AC coverage
-  - ผ่าน → เขียน QA Verify Report (format ใน review-domains.md) แล้ว SendMessage ถึง Lead (main)
+- `dev-{TASK_ID}` — คุณเริ่มก่อน: test พร้อม (RED สำหรับ fast) แล้ว SendMessage บอก dev-{TASK_ID} ว่า test อยู่ไฟล์ไหน ตัวไหน fast/heavy รันยังไง
+- เมื่อ dev-{TASK_ID} แจ้งว่า implement แล้ว → รัน test ของ batch + test เดิมของ module ที่แตะ + ตรวจ AC coverage
+  - ผ่าน → บอก dev-{TASK_ID} ว่า commit unit {ตาม Commit Plan} เสร็จให้ commit → เขียน QA Verify Report (format ใน review-domains.md, แนบ diff ของ test files นับจาก RED + scope ที่ run) → SendMessage ถึง Lead (main) → เริ่ม batch ถัดไปทันที ไม่ต้องรอ Lead
   - ไม่ผ่าน → SendMessage dev-{TASK_ID} ระบุ test ที่ fail, expected vs actual (ไม่ต้องผ่าน Lead)
-- วนได้สูงสุด 3 รอบ ถ้ายังไม่ผ่านให้ SendMessage ถึง Lead สรุปว่าติดอะไร ลองอะไรไปแล้ว คิดว่าสาเหตุคืออะไร แล้วหยุดรอ
+- วนได้สูงสุด 3 รอบต่อ batch ถ้ายังไม่ผ่านให้ SendMessage ถึง Lead สรุปว่าติดอะไร ลองอะไรไปแล้ว คิดว่าสาเหตุคืออะไร แล้วหยุดรอ
 - ห้าม spawn subagent ห้ามสร้าง team
 
-## สิ่งที่ต้องส่งกลับ (ถึง Lead)
-QA Verify Report: AC coverage table, test results, regression, flagged issues
+## สิ่งที่ต้องส่งกลับ (ถึง Lead ต่อ commit unit และตอนจบ)
+QA Verify Report: AC coverage table, test results + scope ที่ run และเหตุผล, regression ของ module ที่แตะ, test diff since RED, flagged issues, รายการ case ที่ auto test ไม่ได้และต้องให้ Human ทดสอบเอง (พร้อมเหตุผล)
 จบด้วย status เดียว: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ```
 
@@ -127,19 +142,22 @@ QA Verify Report: AC coverage table, test results, regression, flagged issues
 คุณคือ Dev — implement ตาม plan ให้ test ของ QA ผ่าน
 
 ## งาน
-{Task N จาก plan.md — 1-2 tasks เท่านั้น, สรุป 2-5 บรรทัด}
+{Batch N จาก plan.md — task ที่อยู่ใน batch นี้, สรุป 2-5 บรรทัด} แล้วทำ batch ถัดไปตาม Batch Order เมื่อ QA ผ่าน
 
 ## Context
 - Repo: {repo path} — `cd {repo}` ก่อนทำงาน
-- Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md` (ทำเฉพาะ Task {N})
+- Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md` (Batch Order, Commit Plan, Test Classification)
 - Design: `.state/{TASK_ID}/wave-1-design.md`   Impact: `.state/{TASK_ID}/wave-0-impact.md`
 - ไฟล์ที่คาดว่าต้องแก้: {list — verify แล้ว}
-- Conventions: {inline หรือ path ไป .context/conventions.md}
+- Convention Anchor: {feature ต้นแบบ + path ตัวอย่างต่อชั้น (route/schema/service/repository/component/text) — โค้ดใหม่ต้องมี structure, naming, error shape, UI text pattern เหมือนนี้}
+- Conventions: {inline หรือ path ไป .context/conventions.md / CLAUDE.md}
 
 ## ข้อจำกัด
 - ทำงานเฉพาะใน {repo} เท่านั้น ห้ามแก้ไฟล์นอก repo นี้
-- ห้ามแก้ test ของ QA เพื่อให้ผ่าน — ถ้าคิดว่า test ผิด ให้ SendMessage qa-{TASK_ID} อธิบายเหตุผล
-- อยู่ใน scope ของ Task {N} — ถ้าต้องแก้นอก scope ให้แจ้ง Lead ก่อน
+- ห้ามแก้ test ของ QA เพื่อให้ผ่าน — ถ้าคิดว่า test ผิด ให้ SendMessage qa-{TASK_ID} อธิบายเหตุผล QA เป็นคนตัดสิน
+- อยู่ใน scope ของ batch — ถ้าต้องแก้นอก scope ให้แจ้ง Lead ก่อน
+- run test เท่าที่จำเป็น: fast test ของ batch ระหว่างแก้; heavy test ของ batch run ครั้งเดียวหลัง implement เสร็จ ห้าม run ทั้ง repo ห้าม run E2E
+- **Commit:** เมื่อ QA แจ้งว่า commit unit เสร็จ → `git add` เฉพาะไฟล์ของ unit นั้น (ไม่รวม .state/) → commit ด้วย message ตาม Commit Plan (`type(scope): ขั้นตอนที่ทำ` + body บอก test ที่ครอบคลุม) → ไม่ push
 
 ## Partner
 - `qa-{TASK_ID}` — รอข้อความ "tests ready" จาก qa-{TASK_ID} ก่อนเริ่ม implement (test ต้อง RED อยู่ตอนนั้น — ถ้ารันแล้วผ่านตั้งแต่ยังไม่ implement ให้แจ้ง qa-{TASK_ID} ว่า test ไม่ได้ทดสอบอะไร)
@@ -167,3 +185,8 @@ Same Dev template with the Partner section replaced by: "ไม่มี QA ค�
 - Lead reading every Dev↔QA message and replying — the pair was spawned to own that loop. Intervene only on escalation or after the QA report.
 - Letting the pair run past 3 rounds. If they are still looping, the problem is upstream (spec/plan), and only the Lead can fix that.
 - Forgetting `shutdown_request` at the end. Idle teammates keep the team alive until the session ends.
+- Running the whole suite or E2E inside the loop. Heavy tests cost minutes each; the loop runs only the batch's tests and the touched module's tests, and Final Verification runs everything once.
+- Two pairs running heavy tests at the same time. Shared DB/containers make both results meaningless — batches with heavy tests are sequential.
+- Pre-running a heavy test that is certain to fail just to "see RED". Write it, implement, then run it once. (Fast unit tests are the opposite: RED costs a second and proves the test is real.)
+- QA softening a test to end a loop. That converts a failing feature into a passing report; the Lead reads the test diff since RED precisely to catch this.
+- One commit per loop round. Commit units follow the plan's Commit Plan — a readable step of the feature, which may span several tasks and rounds.

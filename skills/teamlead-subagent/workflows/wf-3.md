@@ -49,6 +49,8 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - Bug description + reproduction steps from Human
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
+- The regression test is always run RED first, even if it is a heavy test -- that red run is the proof the bug reproduces (run that single test file only)
 - Save the QA Verify Report + Dev's fix summary to `.state/{TASK_ID}/wave-2-fix.md`
 - Verify the regression test was red before the fix and green after
 - Run `git diff --stat` -- a bug fix that touches far more than the root cause named is a signal to check with Dev
@@ -79,7 +81,9 @@ Regression coverage and the reproduction check come from the `qa-{TASK_ID}` team
 
 ### Validation Gate
 
-Lead performs checks 4-5 (Monorepo + State Sync). For checks 1-3:
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
+
+Lead performs checks 4-6 (Monorepo + State Sync). For checks 1-3:
 - Check 1 (Bug Reproduction/Regression Coverage): `qa-{TASK_ID}` Verify Report, re-verified after any fixes
 - Check 2 (Cross-file Consistency): **Skipped** -- no SA in this workflow. Lead does a basic check instead (verify imports/types are consistent in changed files)
 - Check 3 (Convention): Sn Dev report

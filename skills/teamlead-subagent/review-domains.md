@@ -33,6 +33,7 @@ Performance is entirely Sn Dev's domain. SA only evaluates architecture-level de
 2. **Spec/workflow compliance comes first** -- for workflows with TeamLead gates, every reviewer starts by checking whether the implementation matches `.state/{TASK_ID}/spec.md` and `.state/{TASK_ID}/plan.md` for their domain before judging quality. For bug fixes or other non-spec workflows, check against the root-cause, reproduction, design, test, or research artifacts for that workflow.
 3. **Out-of-domain issues: flag and forward, don't fix** -- if a reviewer finds an issue outside their domain, they report it as a flagged item for the correct role. They must not attempt to fix or deeply analyze it.
 4. **WF without QA (e.g. WF-7 Infra)** -- Lead assigns test coverage review to Sn Dev as an exception. Sn Dev covers their normal domains plus test coverage for that workflow only.
+5. **Convention Anchor is the standard** -- reviewers judge structure, naming, UI text, and component usage against the Convention Anchor named in the prompt (the reference feature from `research.md`), not against personal preference. A deviation from the anchor is a finding; "I would have written it differently" is not.
 
 ---
 
@@ -55,13 +56,15 @@ You are a Solution Architect reviewing code changes for task {TASK_ID}.
 - Design, if available: Read {DESIGN_FILE_PATH}
 - Impact Report, if available: Read {IMPACT_REPORT_PATH}
 - Workflow artifacts for non-gated flows, if available: root-cause/reproduction/design/test/research notes
+- Convention Anchor: {reference feature + example paths per layer, from `research.md`}
 - Changed files: {LIST_OF_CHANGED_FILES}
 
 **Instructions:**
 1. Read the canonical spec/plan when present, available workflow artifacts, and all changed files
 2. First check spec/plan or workflow-artifact compliance for your domains
 3. Then evaluate each file against your domains only
-4. If you find an issue outside your domains (code quality, performance, security, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
+4. Compare file placement, layer boundaries, and structure against the Convention Anchor's example paths -- deviations from the anchor are findings; your own preference is not
+5. If you find an issue outside your domains (code quality, performance, security, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
 
 **Required report format:**
 
@@ -120,6 +123,7 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 - Design, if available: Read {DESIGN_FILE_PATH}
 - Impact Report, if available: Read {IMPACT_REPORT_PATH}
 - Workflow artifacts for non-gated flows, if available: root-cause/reproduction/design/test/research notes
+- Convention Anchor: {reference feature + example paths per layer, from `research.md`}
 - Changed files: {LIST_OF_CHANGED_FILES}
 - Project conventions, if available: Read .context/conventions.md
 
@@ -127,7 +131,8 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 1. Read the canonical spec/plan when present, available workflow artifacts, and all changed files
 2. First check spec/plan or workflow-artifact compliance for your domains
 3. Then evaluate each file against your domains only
-4. If you find an issue outside your domains (architecture, data model, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
+4. Compare naming, code structure, error/response shape, UI text, and component usage against the Convention Anchor's example files -- deviations from the anchor are findings; your own preference is not
+5. If you find an issue outside your domains (architecture, data model, test coverage), flag it under "Forwarded Issues" -- do not analyze or fix it
 
 **Required report format:**
 
@@ -232,10 +237,25 @@ You are a QA Engineer verifying task {TASK_ID}.
 - Failed: X
 - Skipped: X
 
+### Run scope
+- Ran: {commands + which test groups/files, and why they were in scope}
+- Skipped: {test groups not run because this batch does not touch the code they cover}
+
+### Test diff since RED
+```diff
+{diff of the test files from the RED state to now -- proof no assertion was
+weakened, no case dropped, no test skipped; "no changes" if untouched}
+```
+
 ### Regression
 - [ ] All existing tests still pass
 - [ ] No unintended side effects detected
 - Findings: ...
+
+### Manual tests left for Human
+| Case | Reason it cannot be automated |
+|------|-------------------------------|
+| {case} | {reason -- e.g. needs real payment gateway, visual judgement, third-party sandbox} |
 
 ### Flagged Issues (outside my domain)
 - [For SA] ...
@@ -269,6 +289,7 @@ This is a WF-7 (Infra) workflow -- you have an EXCEPTION to also cover test cove
 - Canonical Plan, if this workflow used TeamLead gates: Read `.state/{TASK_ID}/plan.md`
 - Design, if available: Read {DESIGN_FILE_PATH}
 - Impact Report, if available: Read {IMPACT_REPORT_PATH}
+- Convention Anchor: {reference feature + example paths per layer from research.md} -- the standard to compare against
 - Changed files: {LIST_OF_CHANGED_FILES}
 
 **Instructions:**

@@ -62,6 +62,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 **Important:** both teammates work ONLY in the API repo (`cd {api repo}`), and they message **only each other and the Lead** -- never the frontend pair.
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; `dev-api` commits per the Commit Plan after `qa-api` PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev summary to `.state/{TASK_ID}/wave-2-api.md`
 - Verify the API is functional and its tests pass before spawning Wave 3
 - Keep `dev-api` and `qa-api` alive -- Wave 4 findings and any contract change from the frontend pair go back to them
@@ -84,6 +85,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 **Important:** Wave 3 MUST NOT be spawned until the Wave 2 QA report comes back `DONE` (frontend depends on API). Both teammates work ONLY in the frontend repo. If the frontend pair needs an API change, `qa-web` tells the **Lead**; the Lead decides whether to route it to `dev-api` (still alive) or revise the contract in the plan. Pairs never message across repos.
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; `dev-web` commits per the Commit Plan after `qa-web` PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev summary to `.state/{TASK_ID}/wave-3-frontend.md`
 - Keep both pairs alive through Wave 4 and the Validation Gate
 
@@ -115,7 +117,9 @@ AC and test coverage for each repo come from the `qa-api` and `qa-web` Verify Re
 
 ### Validation Gate
 
-Lead performs checks 4-5. Check 4 (Monorepo) is especially critical here -- verify no agent touched files outside their assigned repo.
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
+
+Lead performs checks 4-6. Check 4 (Monorepo) is especially critical here -- verify no agent touched files outside their assigned repo.
 
 Check 1 combines the `qa-api` and `qa-web` Verify Reports (both re-verified after any fixes); checks 2-3 come from the reviewer reports. All checks PASS → `shutdown_request` to all four teammates → summarize for Human.
 

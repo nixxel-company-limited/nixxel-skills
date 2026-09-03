@@ -35,7 +35,7 @@ Researchers are **one-shot** agents: no `name`, `model: "opus"`, `run_in_backgro
 
 | Researcher | Role | When | Covers |
 |------------|------|------|--------|
-| **Codebase researcher** | Sn Dev (or Explore-type agent) | Always | Relevant files/routes/services/schemas/tests/configs, existing patterns and conventions, recent related changes, monorepo boundaries, existing docs/specs in the repo |
+| **Codebase researcher** | Sn Dev (or Explore-type agent) | Always | Relevant files/routes/services/schemas/tests/configs, existing patterns and conventions, recent related changes, monorepo boundaries, existing docs/specs in the repo, **Convention Anchor** (the reference feature the new work must look like, with example paths per layer) |
 | **External researcher** | Sn Dev with Context7 MCP / web search | When the work touches a framework, library, external API, or infra tool where current docs matter | Current best practices, version-specific APIs, known pitfalls, migration notes, recommended patterns for the exact versions used in the repo |
 
 Scaling: for a small change in a well-known area, one combined researcher covering both scopes is enough. For larger work or framework-heavy work, spawn both in parallel. The Lead decides — but the default for brainstorm-required work is to spawn, not to skip.
@@ -56,11 +56,12 @@ Research เพื่อเตรียม design discussion สำหรับ:
 ## Scope
 - Repo: {repo path}
 - Codebase: หาไฟล์/route/service/schema/test ที่เกี่ยวข้อง, pattern และ convention ที่ใช้อยู่, การเปลี่ยนแปลงล่าสุดที่เกี่ยวข้อง (git log), ข้อจำกัดจาก architecture
+- Convention Anchor: หา **feature ต้นแบบ** ที่งานใหม่ต้องทำให้เหมือน ไล่ตามลำดับ: `.context/` (conventions/standards/feature docs) → `CLAUDE.md`/`AGENTS.md` ของ repo → ถ้าไม่มี ให้เลือก feature ล่าสุดที่สมบูรณ์ที่สุดในพื้นที่เดียวกับงานนี้ ส่งกลับชื่อ feature + เหตุผลที่เลือก + path ตัวอย่างแยกตามชั้น: route, schema, service, repository, test, component/text ถ้าหาไม่ได้จริงๆ ให้บอกตรงๆ ว่าไม่เจอ ห้ามแต่งขึ้นมา
 - External (ถ้าเกี่ยว): ใช้ Context7/web search หา best practices + API ของ {framework/library} ตาม version ที่ repo ใช้จริง — เช็ค version จาก package.json ก่อน
 
 ## สิ่งที่ต้องส่งกลับ
 Markdown ตาม Research Report template (Lead จะ merge เป็น research.md):
-- Relevant Code Map, Existing Patterns, Recent Changes, External Findings, Constraints, Open Questions
+- Relevant Code Map, Existing Patterns, Convention Anchor, Recent Changes, External Findings, Constraints, Open Questions
 - อ้าง file:line ทุกครั้งที่อ้างโค้ด
 - ถ้าหาไม่เจอ/ไม่แน่ใจ ให้บอกตรงๆ ว่าไม่เจอ ห้ามเดา
 ```
@@ -82,6 +83,11 @@ Each researcher returns this; the Lead merges into one `.state/{TASK_ID}/researc
 ## Existing Patterns & Conventions
 - How the repo already solves similar problems (with file references)
 
+## Convention Anchor
+- Reference feature: {name} — {why it is the standard for this area: `.context/` doc, repo `CLAUDE.md`/`AGENTS.md`, or the most complete recent feature in the same area}
+- Example paths per layer: route `{path}`, schema `{path}`, service `{path}`, repository `{path}`, test `{path}`, component/text `{path}`
+- Say so plainly if no anchor could be found — do not invent one
+
 ## Recent Related Changes
 - Commits/PRs touching this area recently, if relevant
 
@@ -101,6 +107,7 @@ Each researcher returns this; the Lead merges into one `.state/{TASK_ID}/researc
 ## Lead Action After Research
 
 1. Read the reports, merge into `.state/{TASK_ID}/research.md`
+   - If no Convention Anchor could be found, ask the Human one question about which existing feature should be the standard — send it together with the 1-2 intent questions, not as a separate round trip
 2. Update the state file (`state-management.md`) so the gate survives a context reset
 3. Use it immediately in the Brainstorm Protocol:
    - **Step 2 summary to the Human** comes from `research.md`, not from a quick inline scan

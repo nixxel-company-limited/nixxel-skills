@@ -54,6 +54,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - Test command + baseline suite result
 
 **Lead action after wave:**
+- The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Verify the suite result matches the pre-refactor baseline
 - Keep both teammates alive through Wave 3 and the Validation Gate
@@ -84,7 +85,9 @@ Test coverage and the no-regression check come from the `qa-{TASK_ID}` teammate'
 
 ### Validation Gate
 
-Lead performs checks 4-5, takes check 1 from the `qa-{TASK_ID}` report and checks 2-3 from the reviewer reports. All checks PASS → `shutdown_request` to both teammates → summarize for Human.
+Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
+
+Lead performs checks 4-6, takes check 1 from the `qa-{TASK_ID}` report and checks 2-3 from the reviewer reports. All checks PASS → `shutdown_request` to both teammates → summarize for Human.
 
 **Notes:**
 - Shorter than feature workflows because there is no BA (no new spec/AC needed)

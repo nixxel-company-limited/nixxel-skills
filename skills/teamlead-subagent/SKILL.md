@@ -146,6 +146,9 @@ Lead รันบน Fable อยู่แล้ว และ agent ที่ sp
 8. **ทุก spawn ต้องระบุ `model` และเลือก spawn mode** — one-shot: ไม่มี `name` + `run_in_background: true`; teammate: มี `name` + ไม่มี `run_in_background` (ดู Model Policy + Spawn Mode)
 9. **ก่อน spawn ต้องผ่าน Prompt Validation** (อ่าน `validation.md`)
 10. **จบ wave = เขียน state** (อ่าน `state-management.md`)
+11. **Human checkpoint มีแค่ 3 จุด** (design, spec, สรุปจบ) — ระหว่าง batch ไม่หยุดรอ (ดู Execution Policy)
+12. **run test เท่าที่จำเป็น** — fast test RED ก่อน, heavy test run หลัง implement และห้ามขนาน, full suite + E2E ครั้งเดียวตอนท้าย (ดู Test Run Policy)
+13. **ทุก prompt ของ Dev/QA/reviewer ต้องมี Convention Anchor** — standard ของ repo ที่ Lead หามาแล้ว ไม่ให้ agent เดา
 
 ---
 
@@ -157,6 +160,57 @@ Lead รันบน Fable อยู่แล้ว และ agent ที่ sp
 - ถ้า feature กระทบหลาย repos → spawn Dev แยกต่อ repo แต่ละตัวรับผิดชอบ repo เดียว
 - ระบุ working directory ชัดเจนใน prompt: `cd {repo}` ก่อนทำงาน
 - ถ้า repo A ต้องรอ repo B เสร็จก่อน → spawn เป็น sequence ไม่ใช่ parallel
+
+---
+
+## Execution Policy (Batch, Test Run, Commit, Convention Anchor)
+
+นโยบายชุดนี้มาจาก feedback ของผู้ใช้จริง: งานต้องเป็น TDD ที่ agent test/dev/review ไม่เข้าข้างกัน, งานใหม่ต้องไม่ทำของเก่าพัง, ทะยอย commit ให้ไล่อ่านตามได้, Human ตรวจตอนจบเท่านั้น, และ **ห้ามเสียเวลากับ test ที่ไม่จำเป็น**
+
+### Human Checkpoints — มีแค่ 3 จุด
+
+1. approve proposed design (Gate 2) 2. approve spec (Gate 3) 3. สรุปตอนจบหลัง Validation Gate
+
+ระหว่าง batch **ไม่หยุดรอ Human** — batch หนึ่งผ่านแล้วเริ่ม batch ถัดไปทันที ถ้า plan ที่ approve แล้วมี schema change หรือ dependency ใหม่ ให้ทำต่อและระบุใน summary ยกเว้น **migration ที่ทำลายข้อมูล หรือการเปลี่ยน contract ที่ consumer ภายนอกใช้อยู่** ต้องหยุดถาม Escalation ตามกฎเดิม (loop ครบ 3 รอบ, agent ผิด 2 ครั้ง) ยังคงอยู่
+
+### Test Run Policy — run เท่าที่จำเป็น แยกตามชนิด test
+
+Lead classify test ทุกกลุ่มใน plan เป็น 2 ชนิด:
+
+| ชนิด | นิยาม | RED ก่อน implement | run เมื่อไหร่ | ขนานได้? |
+|---|---|---|---|---|
+| **fast** | unit test ที่ไม่แตะ DB, network, container, real infra | **บังคับ** — run เฉพาะไฟล์ test ใหม่ (วินาทีเดียว) เพื่อพิสูจน์ว่า test จับ behavior จริง | ทุกครั้งหลัง Dev แก้ scope ที่เกี่ยว | ได้ |
+| **heavy** | integration/API test ที่ hit DB หรือ real infra, E2E, อะไรก็ตามที่ต้อง container | **ไม่ต้อง** ถ้าแน่นอนว่าแดง (endpoint ยังไม่มี, bug ยัง reproduce) — เขียนไว้ก่อน แล้ว run หลัง implement | หลัง implement เสร็จ เฉพาะ test ที่เกี่ยวกับ batch นั้น; full suite + E2E **ครั้งเดียว** ใน Final Verification | **ไม่ได้** — ห้าม 2 agents run พร้อมกัน ผลจะเพี้ยน |
+
+กฎเพิ่ม:
+- test ที่ผ่านแล้วและ batch ถัดไปไม่แตะ code ที่มันครอบคลุม **ไม่ต้อง run ซ้ำ** — QA ระบุ scope ที่ run และเหตุผลใน report
+- regression ต่อ batch = test ของ module ที่แตะ; regression ทั้งระบบ = Final Verification wave ครั้งเดียวหลังทุก batch เสร็จ (full unit suite → heavy suite → E2E) ถ้า E2E พังค่อยวน fix แล้ว run เฉพาะ E2E ที่พัง
+- bug fix: regression test ต้อง RED ก่อนเสมอ (คือหลักฐานว่า reproduce ได้) ไม่ว่าจะ fast หรือ heavy — ถ้า heavy ให้ run เฉพาะ test นั้นไฟล์เดียว
+- **Batch ที่ต้อง run heavy test ทำตามลำดับเสมอ** (Dev/QA คู่เดียว ณ เวลาหนึ่ง); ขนานหลายคู่ได้เฉพาะเมื่อทุก batch ที่ขนานกันมีแต่ fast test และแตะคนละ module
+
+### Independence — test / dev / review ไม่เข้าข้างกัน
+
+- QA เป็นเจ้าของ test: **ห้ามผ่อน assertion, ลบ case, หรือ skip test ตามคำขอ Dev** ถ้า Dev เห็นว่า test ผิด ให้ Dev อธิบายเหตุผลถึง QA; QA ตัดสินเอง ถ้ายังเห็นต่าง escalate Lead ตัดสิน
+- QA report ต้องแนบ diff ของ test files นับจากตอน RED เพื่อให้ Lead เห็นว่า test ไม่ถูกทำให้อ่อนลงระหว่าง loop
+- Dev ห้ามแก้ test files; QA ห้ามแก้ implementation
+- reviewer เป็น one-shot คนละ agent เสมอ ไม่ใช่ QA หรือ Dev คนเดิม
+
+### Commit Policy — ทะยอย commit ให้ไล่อ่านตามได้ ไม่ซอย
+
+- **Commit unit = ขั้นตอนหนึ่งของ feature ที่อ่านแล้วเข้าใจได้ในตัว** ไม่ใช่ 1 task หรือ 1 รอบ loop — หลาย task ที่เป็นส่วนเดียวกัน (เช่น schema + route + service ของ endpoint เดียว) รวมเป็น commit เดียว; งานที่ต่างขั้นตอนกัน (เช่น "เพิ่ม export endpoint" กับ "เพิ่มปุ่มใน admin UI") แยก commit
+- Lead กำหนด **Commit Plan** ใน `plan.md`: commit unit แต่ละอันครอบคลุม task ไหนบ้าง + message ที่ตั้งใจ — Human จะไล่อ่าน commit เพื่อเข้าใจขั้นตอนการทำงาน ดังนั้นลำดับ commit ต้องเล่าเรื่องได้ เกณฑ์คือ "อ่านแล้วเข้าใจขั้นตอน" ไม่ใช่จำนวน: endpoint เล็กๆ ที่มี 2 task อาจเป็น commit เดียวก็ได้ ส่วน feature ที่มี backend + UI + migration ควรแยกเป็น 3 ขั้นตอนที่อ่านตามได้
+- Dev teammate commit เมื่อ QA ส่ง PASS ของ commit unit นั้น **ห้าม commit งานที่ test ยังไม่ผ่าน** ห้ามรวม state/orchestration files
+- message: `type(scope): สิ่งที่ทำในขั้นตอนนี้` (conventional commits ตาม convention ของ repo ถ้ามี) body สั้นๆ บอกว่า test ไหนครอบคลุม
+- ไม่ push จนกว่า Human สั่ง หรือ plan ระบุ delivery mode เป็น PR
+
+### Convention Anchor — standard ของระบบ ตัดสินจาก feature ต้นแบบ
+
+งานใหม่ทุกส่วน (structure, code, naming, UI, text, component, function) ต้องตาม standard ของ repo นั้น ซึ่ง Lead ต้องหาให้เจอเอง ไม่ใช่ให้ Dev เดา:
+
+1. ใน Research Gate ให้ codebase researcher หา **Convention Anchor**: ไล่จาก `.context/` (conventions, standards, feature docs) → `CLAUDE.md`/`AGENTS.md` ของ repo → ถ้าไม่มี ให้เลือก feature ล่าสุดที่สมบูรณ์ที่สุดในพื้นที่เดียวกับงาน (เช่น ถ้าทำ admin export ให้ดู admin feature ที่ครบ route/schema/service/test/UI) เป็นต้นแบบ
+2. บันทึกลง `research.md` section "Convention Anchor": feature ต้นแบบ + path ของไฟล์ที่เป็นตัวอย่างแต่ละชั้น (route, schema, service, repository, test, component, i18n/text)
+3. ทุก prompt ของ Dev/QA/reviewer ต้องมี Convention Anchor นี้ — Dev เขียนให้เหมือน, QA เขียน test ตาม pattern เดิม, reviewer ตรวจเทียบกับ anchor ไม่ใช่ตามความชอบตัวเอง
+4. ถ้าหา anchor ไม่ได้จริงๆ ถาม Human 1 คำถามในช่วง Research Gate (รวมกับคำถาม intent)
 
 ---
 
@@ -243,8 +297,9 @@ Wave 0 สำหรับงานที่ผ่าน gates แล้วคื
 10. Agent กลับ / teammate idle → review output + เขียน state
 11. ก่อน review wave → อ่าน review-domains.md → reviewers เป็น one-shot opus
 12. Review findings ที่ต้องแก้ → SendMessage ถึง Dev teammate → QA teammate re-verify → re-review เฉพาะ domain ที่ fail
-13. Validation Gate (อ่าน validation.md) → shutdown teammates ทุกตัว
-14. ทุกอย่างผ่าน → สรุปให้ Human → รอ Human acknowledge → ลบ state
+13. ทุก batch เสร็จ → Final Verification wave: QA run full unit suite → heavy suite → E2E ครั้งเดียว (ดู workflows/common.md)
+14. Validation Gate (อ่าน validation.md) → shutdown teammates ทุกตัว
+15. ทุกอย่างผ่าน → สรุปให้ Human พร้อม commit list + "Manual tests left for Human" → รอ Human acknowledge → ลบ state
 ```
 
 **Non-Brainstorm work:** ข้าม step 3-6 เข้า step 7 เลย แต่ bug fix ต้องใช้ WF-3 Root Cause flow ก่อน spawn Dev. Read-only research/review/status/explanation ทำตรงได้ถ้าไม่ต้อง orchestration/delegation.
@@ -255,7 +310,7 @@ Wave 0 สำหรับงานที่ผ่าน gates แล้วคื
 
 ทุก tool call ของ Lead คือ 1 turn และทุก turn ส่ง context ทั้งก้อนกลับไปใหม่ (ถึงจะ cache ก็ยังมีต้นทุนและเวลา) ต้นทุนของ session จึงขึ้นกับ **จำนวน turn** มากกว่าขนาดของ prompt แต่ละอัน กฎเหล่านี้ลด turn โดยที่ทุก gate ยังทำครบเหมือนเดิม:
 
-- **อ่านเป็นชุด** — ไฟล์ที่รู้อยู่แล้วว่าต้องใช้ใน phase นั้น อ่านพร้อมกันในข้อความเดียว ไม่อ่านทีละไฟล์แล้วรอ
+- **อ่านเป็นชุด** — ไฟล์ที่รู้อยู่แล้วว่าต้องใช้ใน phase นั้น อ่านพร้อมกันในข้อความเดียว ไม่อ่านทีละไฟล์แล้วรอ — ใช้ `Read` หลาย call ใน turn เดียว (call ละไฟล์) ไม่ใช่ `cat` หลายไฟล์ในคำสั่งเดียว เพราะ output รวมเกิน limit จะถูกตัดทิ้งแล้วต้องอ่านใหม่
 - **โหลดเฉพาะที่ใช้** — `workflows/wf-N.md` ของ WF ที่เลือกเท่านั้น; template ใน `review-domains.md`/`teammate-loops.md` อ่านตอนจะใช้จริง
 - **ตรวจ path ด้วย `ls` คำสั่งเดียวต่อ wave** — รวมทุก path จากทุก prompt ของ wave นั้น (ดู `validation.md`) ห้ามใช้ `Read` เพื่อเช็คว่าไฟล์มีอยู่ เพราะดึงเนื้อไฟล์เข้า context โดยไม่จำเป็น
 - **spawn agents ที่ขนานกันได้ในข้อความเดียว** — รวมถึงคู่ Dev/QA teammate
@@ -279,7 +334,8 @@ Wave 0 สำหรับงานที่ผ่าน gates แล้วคื
 
 ## Context
 - Repo: {repo path}
-- ไฟล์ที่เกี่ยวข้อง: {list files — ต้อง verify ด้วย Glob/Read แล้ว}
+- ไฟล์ที่เกี่ยวข้อง: {list files — ต้อง verify ด้วย ls แล้ว}
+- Convention Anchor: {feature ต้นแบบ + path ตัวอย่างต่อชั้น จาก research.md — งานใหม่ต้องเหมือนนี้}
 - Research: {สรุปจาก research.md หรือ path ไปหา .state/{TASK_ID}/research.md ถ้ามี}
 - Impact Report: {สรุปจาก Wave 0 หรือ path ไปหา wave-0-impact.md}
 - ผล wave ก่อนหน้า: {สรุป หรือ path ไปหา wave output file}
@@ -321,8 +377,9 @@ Wave 0 สำหรับงานที่ผ่าน gates แล้วคื
 
 - Task ID ยังไม่มี → generate slug เอง เว้นแต่ external tracking ต้องใช้ชื่อเฉพาะ
 - Branch ไม่ชัด → generate branch เอง เว้นแต่ repo policy หรืองานภายนอกต้องใช้ชื่อเฉพาะ
-- Business logic ไม่แน่ใจ → ถาม
-- Schema change / new dependency → แจ้งก่อนทำ
+- Business logic ไม่แน่ใจ → ถาม (ในช่วง brainstorm ไม่ใช่ระหว่าง batch)
+- Schema change / new dependency ที่อยู่ใน plan ที่ approve แล้ว → ทำต่อ ระบุใน summary; migration ทำลายข้อมูล หรือ contract ที่ consumer ภายนอกใช้ → หยุดถาม
+- หา Convention Anchor ไม่เจอจาก repo → ถาม 1 คำถามใน Research Gate
 - Agent ทำผิด 2 ครั้ง → escalate
 - Dev↔QA loop ครบ 3 รอบยังไม่ผ่าน และ Lead แก้ context/plan แล้วยังไม่ผ่านอีก → escalate
 - Validation Gate fail 2 รอบ → escalate

@@ -87,13 +87,38 @@ Each agent produces an Impact Report using this template:
 
 ### Test-first Scope Rule
 
-Backend/API/service changes require QA to write a failing test before Dev implementation starts. Frontend-only and other non-backend changes follow the risk-based test strategy in `.state/{TASK_ID}/plan.md`; QA may still write tests first, but a red test is mandatory only when the plan or risk profile calls for it.
+Backend/API/service changes require QA to write the test before Dev implementation starts. How the test is proven depends on the plan's Test Classification:
+
+- **fast tests** (no DB, network, container, or real infra): must be **seen RED** -- QA runs only the new test file(s), which costs a second and proves the test actually catches the behavior.
+- **heavy tests** (hit DB/real infra, E2E, anything needing a container): the pre-run may be skipped when failure is certain (the endpoint does not exist yet, the bug still reproduces). Write the test, note "RED assumed: {why}", and run it once after the implementation is complete.
+- **bug-fix regression test**: always run once before the fix, fast or heavy -- the red run *is* the proof of reproduction. For a heavy one, run that single test file only.
+- **Heavy tests never run concurrently.** Two agents hitting the same DB/containers corrupt each other's results, so batches with heavy tests are sequential (see `teammate-loops.md`).
+
+Frontend-only and other non-backend changes follow the risk-based test strategy in `.state/{TASK_ID}/plan.md`; QA may still write tests first, but a red test is mandatory only when the plan or risk profile calls for it.
+
+---
+
+## Final Verification wave
+
+Runs **once**, after the LAST batch/commit unit of the workflow and before the Validation Gate. No E2E run and no full-suite run happens inside the implementation loops -- the pair only runs the batch's tests plus the touched module's existing tests. Final Verification is where the whole system is checked one time.
+
+The `qa-{TASK_ID}` teammate (already alive from the implementation loop) runs, **sequentially, one time each**:
+
+1. the full unit suite
+2. the heavy / integration suite
+3. E2E
+
+Failures go back to `dev-{TASK_ID}` by `SendMessage` with the exact failing tests. After the fix, **only the failing tests are re-run** -- never the whole sequence again.
+
+**Output:** `.state/{TASK_ID}/final-verification.md` -- what was run (commands + scope), the results of each of the three runs, and what could not be automated (cases the Human must test manually, with the reason each one cannot be automated).
+
+WF-6 has no Final Verification (no code is produced). WF-7 has no QA teammate: the Lead runs the named verification commands itself and writes the same file.
 
 ---
 
 ## Validation Gate
 
-Every workflow (except WF-6) ends with a Validation Gate after the final review wave.
+Every workflow (except WF-6) ends with a Validation Gate, run after the Final Verification wave completes.
 
 ### Who checks what
 
@@ -104,21 +129,24 @@ Every workflow (except WF-6) ends with a Validation Gate after the final review 
 | 3. Convention Check | **Sn Dev** (review wave, one-shot `opus`) | Sn Dev checks naming, format, response shape |
 | 4. Monorepo Check | **Lead** | Run `git status` -- verify modified files are in the correct repo(s) |
 | 5. State Sync | **Lead** | Run `git status` + `git log` -- verify all changes are committed |
+| 6. Commit Plan followed | **Lead** | Run `git log --oneline` on the task branch -- commits match the plan's Commit Plan units, no per-round micro-commits, no `.state/` files committed, nothing pushed unless the Human requested it |
 
-Check 1 comes from the QA teammate, checks 2-3 from the one-shot reviewers. Lead only performs checks 4-5 after collecting all reports.
+Check 1 comes from the QA teammate, checks 2-3 from the one-shot reviewers. Lead only performs checks 4-6 after collecting all reports.
 
 ### Gate Flow
 
 ```
+Final Verification wave completes (final-verification.md written)
+  |
 Review wave completes (Dev/QA teammates are still alive)
   |
 Lead collects the QA Verify Report + SA/Sn Dev review reports
   |
-Lead runs git status/log for checks 4-5
+Lead runs git status/log for checks 4-6
   |
 Any check FAIL --> route the finding per the table below --> re-verify --> re-check
   |
-All 5 checks PASS --> shutdown_request to every teammate --> summarize for Human with verdict: PASS
+All 6 checks PASS --> shutdown_request to every teammate --> summarize for Human with verdict: PASS
 ```
 
 ### Routing a failed check
@@ -131,10 +159,11 @@ Follow the "Review findings → back to the pair" table in `teammate-loops.md`:
 | 2. Cross-file Consistency, 3. Convention (code change needed) | `SendMessage dev-{TASK_ID}` with the exact finding + `file:line`, then `SendMessage qa-{TASK_ID}` to re-verify once Dev reports back |
 | 2-3 (architecture / spec deviation) | Lead decides: Dev slip → route to Dev; spec/plan gap → revise the artifact, Human approval if requirements change |
 | 4. Monorepo, 5. State Sync | Lead's own checks -- Lead fixes the commit/repo scope or routes the stray file to the owning Dev teammate |
+| 6. Commit Plan followed | Lead's own check -- a missing or mis-scoped commit goes back to `dev-{TASK_ID}` with the intended unit and message; Lead never rewrites product commits itself |
 
 After fixes, re-run **only** the reviewer whose domain failed (a fresh one-shot `opus` reviewer with the same prompt plus the previous findings). Do not re-run the whole review wave for one finding.
 
-**Closing the gate:** all 5 checks PASS → `SendMessage {"type": "shutdown_request"}` to every teammate spawned for this task → summarize for Human. Teammates must not be shut down before the gate passes, because review findings have to reach the same Dev.
+**Closing the gate:** all 6 checks PASS → `SendMessage {"type": "shutdown_request"}` to every teammate spawned for this task → summarize for Human. Teammates must not be shut down before the gate passes, because review findings have to reach the same Dev.
 
 Same domain fails twice on re-check → escalate to Human.
 
@@ -144,7 +173,7 @@ Same domain fails twice on re-check → escalate to Human.
 ## Summary -- {TASK_ID}
 
 **Workflow**: {WF-X} ({description})
-**Validation**: PASS (5/5) | FAIL (X/5)
+**Validation**: PASS (6/6) | FAIL (X/6)
 
 ### What was done
 - Wave 0: {impact summary}
@@ -155,8 +184,13 @@ Same domain fails twice on re-check → escalate to Human.
 ### Files changed
 - {repo}: {file list}
 
+### Commits
+- {hash} {message}   <- commit unit 1
+- {hash} {message}   <- commit unit 2
+
 ### Test Results
 - X passed / Y failed
+- Final Verification: full unit suite / heavy suite / E2E -- results (see `.state/{TASK_ID}/final-verification.md`)
 
 ### Validation Detail
 - AC Coverage: PASS/FAIL (QA) -- details
@@ -164,14 +198,20 @@ Same domain fails twice on re-check → escalate to Human.
 - Convention: PASS/FAIL (Sn Dev) -- details
 - Monorepo: PASS/FAIL (Lead) -- details
 - State Sync: PASS/FAIL (Lead) -- details
+- Commit Plan followed: PASS/FAIL (Lead) -- details
+
+### Manual tests left for Human
+- {case} -- {why it could not be automated}
 
 ### Things to know (if any)
-- {risks, caveats, manual steps}
+- {risks, caveats}
 ```
 
 ---
 
 ## Quick Reference -- Workflow Wave Counts
+
+Every workflow with a Validation Gate runs the Final Verification wave first.
 
 | WF | Name | Waves | Wave 0 | Validation Gate | Spawn mode + model |
 |----|------|:-----:|:------:|:---------------:|--------------------|

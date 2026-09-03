@@ -32,6 +32,8 @@ Run this checklist before **every** `Agent` spawn. No exceptions.
 |        - Impact Report (wave-0-impact.md) included           |
 |          if this is Wave 1+?                                 |
 |        - Design/AC docs included if this is impl/test wave?  |
+|        - Convention Anchor (from research.md) included for   |
+|          Dev/QA/reviewer prompts?                            |
 |  [ ] 4. Domain clear                                         |
 |        - Agent role specified?                                |
 |        - Review domains listed explicitly (for review wave)? |
@@ -40,9 +42,16 @@ Run this checklist before **every** `Agent` spawn. No exceptions.
 |        - Monorepo rule stated (1 agent = 1 repo)?            |
 |        - Working directory specified (cd {repo})?            |
 |        - Project conventions referenced or inlined?          |
+|        - Test run scope stated (which tests are fast/heavy,  |
+|          what to run in the loop, no full suite / no E2E in  |
+|          the loop, heavy tests never concurrent)?            |
+|        - Independence stated for Dev/QA prompts (Dev never   |
+|          edits tests, QA never softens tests)?               |
 |  [ ] 6. Output clear                                         |
 |        - Expected deliverable specified?                      |
 |        - Output format described (code? report? test files?) |
+|        - QA report includes run scope + test diff since RED  |
+|          + manual-test cases left for the Human?             |
 |  [ ] 7. Spawn params                                         |
 |        - `model` set explicitly and matches the Model Policy |
 |          table in SKILL.md for this task type?               |
@@ -89,6 +98,7 @@ These are checked by Lead reviewing the prompt text. No tool required, but Lead 
 - Wave 0 completed? Prompt must reference `.state/{taskId}/wave-0-impact.md`
 - Wave 1 completed? Prompt must reference the design/AC output file
 - Wave N depends on Wave N-1? Previous wave output must be in the prompt
+- Dev, QA, or reviewer prompt? The Convention Anchor from `research.md` (reference feature + example path per layer) must be inlined -- an agent that has to guess the repo standard will invent one
 - Exception: Wave 0 itself has no prior context requirement
 
 **Item 4 -- Domain clear:**
@@ -100,10 +110,13 @@ These are checked by Lead reviewing the prompt text. No tool required, but Lead 
 - Every prompt must contain the monorepo rule: work only in `{repo}`, do not modify files outside
 - Every prompt must specify `cd {repo}` as the working directory
 - Convention reference: either inline key conventions or point to `.context/conventions.md`
+- Test run scope is stated: which test groups are fast and which are heavy, what the agent runs inside the loop (batch tests + touched module only), that the full suite and E2E are **not** run in the loop (Final Verification covers them once), and that heavy tests never run concurrently with another pair
+- Independence is stated on both halves of the pair: Dev never edits test files (if Dev believes a test is wrong, Dev explains it to QA and QA decides); QA never weakens an assertion, drops a case, or skips a test because Dev asked
 
 **Item 6 -- Output clear:**
 - Dev agents: "send back: list of files changed + brief summary"
 - QA agents: "send back: test files created, test run results"
+- QA reports must additionally include: the run scope (what was run and why, what was skipped as unaffected), the test diff since RED (proof the tests were not softened), and the manual-test cases that could not be automated with the reason for each
 - QA teammate in a Dev loop: the report goes to the Lead with `SendMessage` to `main`, not as a task result -- a teammate does not return a task result, so a prompt that only says "return a report" leaves the Lead waiting
 - Review agents: "send back: review report in the format from review-domains.md"
 - Research agents: "send back: findings + recommendation"
@@ -132,7 +145,7 @@ Fail any item -> do not spawn. Return to the relevant TeamLead local protocol.
 
 ## 2. Validation Gate (Before Reporting to Human)
 
-After the review wave completes, Lead runs the Validation Gate before delivering results to Human. This ensures all output is consistent and complete.
+After the Final Verification wave and the review wave complete, Lead runs the Validation Gate before delivering results to Human. This ensures all output is consistent and complete. The Final Verification wave (full unit suite → heavy suite → E2E, run once -- see `workflows/common.md`) always precedes this gate; its output is `.state/{TASK_ID}/final-verification.md`.
 
 ### Responsibility Matrix
 
@@ -143,17 +156,22 @@ After the review wave completes, Lead runs the Validation Gate before delivering
 | 3 | **Convention Check** | Sn Dev | During review wave | Sn Dev checks naming, format, response shape against project conventions |
 | 4 | **Monorepo Check** | Lead | After review wave | Lead runs `git status` in each affected repo to verify modified files are in the correct repo |
 | 5 | **State Sync** | Lead | After review wave | Lead runs `git status`, branch/worktree checks, and `git log` when commits are part of the requested delivery mode, and confirms every teammate has been shut down |
+| 6 | **Commit Plan followed** | Lead | After review wave | Lead runs `git log --oneline` on the task branch: commits match the plan's Commit Plan units, no per-round micro-commits, no `.state/` files committed, nothing pushed unless the Human requested it |
 
-**Key design:** Items 1-3 are done by review wave agents as part of their normal review output. Lead only needs to collect and verify those reports. Items 4-5 are Lead's own checks using git commands.
+**Key design:** Items 1-3 are done by review wave agents as part of their normal review output. Lead only needs to collect and verify those reports. Items 4-6 are Lead's own checks using git commands.
 
 ### Validation Gate Flow
 
 ```
+Final Verification wave completes (final-verification.md written)
+  |
+  v
 Review wave completes (all agents return reports)
   |
   v
 Lead collects reports:
   - QA Verify Report (contains AC coverage)
+  - final-verification.md (full suite / heavy suite / E2E results, manual cases)
   - SA Review Report (contains cross-file consistency)
   - Sn Dev Review Report (contains convention check)
   |
@@ -165,6 +183,11 @@ Lead runs own checks:
   - Item 5: git status + branch/worktree check + git log --oneline -5 when commit/PR delivery was requested
     PASS: branch/worktree are correct, changed files are understood, dirty files match expected delivery mode, commit state matches the Human-requested delivery mode, and every teammate is accounted for (shut down as the last step below)
     FAIL: wrong branch/worktree, unexpected dirty files, unexplained changed files, missing commit for requested commit/PR flow, or unexpected commit when the Human did not request one
+  - Item 6: git log --oneline on the task branch
+    PASS: one commit per Commit Plan unit, in the planned order, messages match
+          the plan, no .state/ file in any commit, nothing pushed unless requested
+    FAIL: per-round micro-commits, a unit missing or split, .state/ committed,
+          or a push the Human did not ask for
   |
   v
 Combine all verdicts:
@@ -217,8 +240,13 @@ When Validation Gate passes (or on escalation), deliver this summary:
 - {repo-name}: {list of changed files}
 - {repo-name}: {list of changed files}
 
+### Commits
+- {hash} {message}   <- commit unit 1
+- {hash} {message}   <- commit unit 2
+
 ### Test results
 - {X} passed / {Y} failed / {Z} skipped
+- Final Verification: full unit suite / heavy suite / E2E -- {results} (`.state/{TASK_ID}/final-verification.md`)
 
 ### Validation detail
 | # | Check | Verdict | Checked by | Detail |
@@ -228,6 +256,12 @@ When Validation Gate passes (or on escalation), deliver this summary:
 | 3 | Convention Check | PASS/FAIL/N/A | Sn Dev | {brief finding or N/A reason} |
 | 4 | Monorepo Check | PASS/FAIL/N/A | Lead | {brief finding or N/A reason} |
 | 5 | State Sync | PASS/FAIL/N/A | Lead | {brief finding or N/A reason} |
+| 6 | Commit Plan followed | PASS/FAIL/N/A | Lead | {brief finding or N/A reason} |
+
+### Manual tests left for Human
+| Case | Why it could not be automated |
+|------|-------------------------------|
+| {case} | {reason} |
 
 ### Caveats (if any)
 - {risks, manual steps required, known limitations}
@@ -247,11 +281,13 @@ Not all workflows use every validation item. This table specifies which items ap
 | **3. Convention Check** | Sn Dev | Sn Dev | Sn Dev | Sn Dev | Sn Dev per repo | N/A | Sn Dev |
 | **4. Monorepo Check** | Lead | Lead | Lead | Lead | Lead (critical -- multi-repo) | N/A | Lead |
 | **5. State Sync** | Lead | Lead | Lead | Lead | Lead | N/A | Lead |
+| **6. Commit Plan followed** | Lead | Lead | Lead | Lead | Lead | N/A | Lead |
+| **Final Verification wave runs first?** | YES | YES | YES | YES | YES | NO | YES (Lead runs it) |
 | **Validation Gate runs?** | YES | YES | YES | YES | YES | NO | YES |
 
 ### Per-Workflow Notes
 
-**WF-1 / WF-2 (Feature):** Full validation. All 5 items checked. SA present in review wave handles cross-file consistency.
+**WF-1 / WF-2 (Feature):** Full validation. All 6 items checked. SA present in review wave handles cross-file consistency.
 
 **WF-3 (Bug Fix):** No SA in review wave, so cross-file consistency (item 2) is N/A. QA covers AC coverage (regression test + fix verification). Sn Dev covers convention + code quality.
 
@@ -265,6 +301,6 @@ For WF-3, "AC Coverage" means bug validation coverage: QA maps reported symptom 
 
 **WF-7 (Infra/Docker/CI):** No QA agent, so AC Coverage (item 1) is N/A. Sn Dev handles test coverage as an exception (see review-domains.md WF-7 section). Convention check and monorepo check still apply. Cross-file consistency (item 2) is N/A since no SA in review wave.
 
-**N/A Denominators:** Validation summaries must count only applicable items in the denominator. Do not report `5/5` for workflows with N/A items. Example: WF-3 normally reports `4/4 applicable items passed; 1 N/A` because Cross-file Consistency is N/A.
+**N/A Denominators:** Validation summaries must count only applicable items in the denominator. Do not report `6/6` for workflows with N/A items. Example: WF-3 normally reports `5/5 applicable items passed; 1 N/A` because Cross-file Consistency is N/A.
 
 **Validation Failure Ownership:** Lead may directly fix only orchestration, state-management, prompt wording, routing, and validation bookkeeping issues. Any failure requiring product/source code, tests, config, migrations, data model, or business behavior changes must be sent back to the responsible implementation/review agent, or escalated to Human if ownership is unclear.
