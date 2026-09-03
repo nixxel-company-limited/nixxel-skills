@@ -112,7 +112,7 @@ Fill these in, run the Prompt Validation Checklist, then spawn both in the same 
 ## Context
 - Repo: {repo path} — `cd {repo}` ก่อนทำงาน
 - Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md` (Test Classification, Batch Order, Commit Plan)
-- Design: `.state/{TASK_ID}/wave-1-design.md`   Impact: `.state/{TASK_ID}/wave-0-impact.md`
+- Design/Root cause: `.state/{TASK_ID}/wave-1-{design|root-cause}.md` (ถ้า workflow มี)   Impact: `.state/{TASK_ID}/wave-0-impact.md`
 - Convention Anchor: {feature ต้นแบบ + path ไฟล์ test ตัวอย่าง — test ใหม่ต้องใช้ pattern เดียวกัน: setup, mocking, naming, โครงสร้าง}
 - Test commands: fast `{command}` / heavy `{command}` (heavy ห้าม run ซ้อนกับใคร)
 
@@ -147,7 +147,7 @@ QA Verify Report: AC coverage table, test results + scope ที่ run แล�
 ## Context
 - Repo: {repo path} — `cd {repo}` ก่อนทำงาน
 - Spec: `.state/{TASK_ID}/spec.md`   Plan: `.state/{TASK_ID}/plan.md` (Batch Order, Commit Plan, Test Classification)
-- Design: `.state/{TASK_ID}/wave-1-design.md`   Impact: `.state/{TASK_ID}/wave-0-impact.md`
+- Design/Root cause: `.state/{TASK_ID}/wave-1-{design|root-cause}.md` (ถ้า workflow มี)   Impact: `.state/{TASK_ID}/wave-0-impact.md`
 - ไฟล์ที่คาดว่าต้องแก้: {list — verify แล้ว}
 - Convention Anchor: {feature ต้นแบบ + path ตัวอย่างต่อชั้น (route/schema/service/repository/component/text) — โค้ดใหม่ต้องมี structure, naming, error shape, UI text pattern เหมือนนี้}
 - Conventions: {inline หรือ path ไป .context/conventions.md / CLAUDE.md}
@@ -160,7 +160,7 @@ QA Verify Report: AC coverage table, test results + scope ที่ run แล�
 - **Commit:** เมื่อ QA แจ้งว่า commit unit เสร็จ → `git add` เฉพาะไฟล์ของ unit นั้น (ไม่รวม .state/) → commit ด้วย message ตาม Commit Plan (`type(scope): ขั้นตอนที่ทำ` + body บอก test ที่ครอบคลุม) → ไม่ push
 
 ## Partner
-- `qa-{TASK_ID}` — รอข้อความ "tests ready" จาก qa-{TASK_ID} ก่อนเริ่ม implement (test ต้อง RED อยู่ตอนนั้น — ถ้ารันแล้วผ่านตั้งแต่ยังไม่ implement ให้แจ้ง qa-{TASK_ID} ว่า test ไม่ได้ทดสอบอะไร)
+- `qa-{TASK_ID}` — รอข้อความ "tests ready" จาก qa-{TASK_ID} ก่อนเริ่ม implement (fast test ต้อง RED อยู่ตอนนั้น — ถ้ารันแล้วผ่านตั้งแต่ยังไม่ implement ให้แจ้ง qa-{TASK_ID} ว่า test ไม่ได้ทดสอบอะไร; heavy test ที่ QA ระบุ `RED assumed` ไม่ต้อง pre-run)
 - implement เสร็จ + รัน test เองแล้ว → SendMessage qa-{TASK_ID}: ไฟล์ที่แก้ + ผล test
 - ถ้า qa-{TASK_ID} แจ้งว่า fail → แก้แล้วแจ้งกลับ qa-{TASK_ID} โดยตรง (ไม่ต้องผ่าน Lead)
 - วนได้สูงสุด 3 รอบ — ถ้ารอบที่ 3 ยังไม่ผ่าน หยุดแก้ แล้ว SendMessage ถึง Lead (main) สรุปว่าติดอะไร ลองอะไรไปแล้ว คิดว่าเป็น spec/plan gap ตรงไหน (qa-{TASK_ID} จะ escalate ด้วยเช่นกัน)

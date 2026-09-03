@@ -54,7 +54,7 @@ Both run on `fable` for the same reason as WF-1: this is the wave whose output e
 Read `teammate-loops.md` before spawning. Both teammates are spawned **in the same message** and loop on their own.
 
 **Agents:**
-- **`qa-{TASK_ID}`** (teammate, `opus`) -- write tests from AC according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL first, then message `dev-{TASK_ID}`
+- **`qa-{TASK_ID}`** (teammate, `opus`) -- write tests from AC according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL first, then message `dev-{TASK_ID}` — fast tests seen RED; heavy tests may record `RED assumed: {why}` per the plan's Test Classification
 - **`dev-{TASK_ID}`** (teammate, `opus`) -- implement the planned change so QA's tests pass; stay inside the assigned task slice
 
 **Loop:** QA RED → Dev implements → QA verifies. PASS → QA sends its QA Verify Report to the Lead. FAIL → QA messages Dev directly, max 3 rounds, then QA escalates to the Lead.
@@ -69,7 +69,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Run `git diff --stat` and check the changed files against the plan's expected file list
-- Verify required backend/API/service tests were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
+- Verify required backend/API/service tests were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed — fast tests seen RED; heavy tests may record `RED assumed: {why}` per the plan's Test Classification
 - Keep both teammates alive through Wave 3 and the Validation Gate
 
 ---

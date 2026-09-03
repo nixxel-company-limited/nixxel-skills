@@ -19,7 +19,7 @@ Lead reads this file before spawning review wave agents. Each reviewer must stay
 
 SA and Sn Dev reviewers are **one-shot** `opus` background agents: no `name`, `run_in_background: true`. They read the diff and return one report.
 
-The QA Verify Report is **not** a fresh spawn. It comes from the `qa-{TASK_ID}` teammate that is still alive from the implementation loop -- once at the end of the loop, and again after any review fixes land. Spawning a new QA here would throw away the loop's context and re-read everything.
+The QA Verify Report is **not** a fresh spawn. It comes from the `qa-{TASK_ID}` teammate that is still alive from the implementation loop -- after each commit unit, at the end of the loop, and again after any review fixes land. Spawning a new QA here would throw away the loop's context and re-read everything.
 
 ### Key change from v1
 
@@ -183,7 +183,7 @@ You are a Senior Developer reviewing code changes for task {TASK_ID}.
 
 ### QA Verify Prompt
 
-```
+````
 <!-- delivered to the qa-{TASK_ID} teammate via SendMessage, or included in its spawn prompt -->
 You are a QA Engineer verifying task {TASK_ID}.
 
@@ -263,7 +263,7 @@ weakened, no case dropped, no test skipped; "no changes" if untouched}
 
 ### Status: DONE | DONE_WITH_CONCERNS | NEEDS_CONTEXT | BLOCKED
 ### Verdict: PASS | FAIL | PASS_WITH_NOTES
-```
+````
 
 ---
 

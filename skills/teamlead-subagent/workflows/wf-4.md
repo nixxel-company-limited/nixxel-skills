@@ -54,7 +54,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - Test command + baseline suite result
 
 **Lead action after wave:**
-- The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
+- The pair works through the Batch Order and Commit Plan from `plan.md` **if this workflow produced one** (otherwise the batch/commit units the Lead states in the prompt) without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` **if it exists, otherwise the reference feature identified in Wave 0** is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Verify the suite result matches the pre-refactor baseline
 - Keep both teammates alive through Wave 3 and the Validation Gate

@@ -45,7 +45,7 @@ Both run on `fable`. This is the thinking wave: a wrong AC or a wrong contract h
 Read `teammate-loops.md` before spawning. Both teammates are spawned **in the same message** and then loop on their own; the Lead stays out of the inner loop.
 
 **Agents:**
-- **`qa-{TASK_ID}`** (teammate, `opus`) -- write tests from the AC list according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL first, then message `dev-{TASK_ID}`
+- **`qa-{TASK_ID}`** (teammate, `opus`) -- write tests from the AC list according to `.state/{TASK_ID}/plan.md`; backend/API/service tests MUST FAIL first, then message `dev-{TASK_ID}` — fast tests seen RED; heavy tests may record `RED assumed: {why}` per the plan's Test Classification
 - **`dev-{TASK_ID}`** (teammate, `opus`) -- implement the planned change so QA's tests pass; stay inside the assigned task slice
 
 **Loop:** QA RED → Dev implements → QA verifies. PASS → QA writes the QA Verify Report and sends it to the Lead. FAIL → QA messages Dev directly with the failing tests, max 3 rounds, then QA escalates to the Lead with what it tried and the suspected cause.
@@ -60,7 +60,7 @@ Read `teammate-loops.md` before spawning. Both teammates are spawned **in the sa
 - The pair works through the plan's Batch Order without returning to the Lead between batches; Dev commits per the Commit Plan after QA PASS; the Convention Anchor from `research.md` is in every prompt
 - Save the QA Verify Report + Dev's summary to `.state/{TASK_ID}/wave-2-implementation.md`
 - Run `git diff --stat`, then read the files the plan said would change -- Dev drifting outside the planned files is the most common problem to catch here
-- Verify required backend/API/service tests existed and were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed
+- Verify required backend/API/service tests existed and were red before implementation; for frontend-only/non-backend scope, verify the plan's risk-based test strategy was followed — fast tests seen RED; heavy tests may record `RED assumed: {why}` per the plan's Test Classification
 - Keep both teammates alive through Wave 3 and the Validation Gate
 
 While the pair runs, the Lead prepares the review-wave prompts and updates state. Do not poll the pair.
@@ -94,7 +94,7 @@ Test coverage and AC coverage come from the `qa-{TASK_ID}` teammate's Verify Rep
 
 Preceded by the Final Verification wave (see `common.md`) -- full unit suite, heavy suite, E2E, run once.
 
-Lead performs checks 4-6 (Monorepo + State Sync), takes check 1 from the `qa-{TASK_ID}` report (re-verified after any fixes) and checks 2-3 from the SA/Sn Dev reports. All checks PASS → `shutdown_request` to `qa-{TASK_ID}` and `dev-{TASK_ID}` → summarize for Human.
+Lead performs checks 4-6 (Monorepo + State Sync + Commit Plan), takes check 1 from the `qa-{TASK_ID}` report (re-verified after any fixes) and checks 2-3 from the SA/Sn Dev reports. All checks PASS → `shutdown_request` to `qa-{TASK_ID}` and `dev-{TASK_ID}` → summarize for Human.
 
 **Notes:**
 - This is the standard feature workflow after TeamLead Brainstorm/Spec/Plan gates have produced canonical artifacts

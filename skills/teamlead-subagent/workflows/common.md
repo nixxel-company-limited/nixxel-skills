@@ -136,9 +136,9 @@ Check 1 comes from the QA teammate, checks 2-3 from the one-shot reviewers. Lead
 ### Gate Flow
 
 ```
-Final Verification wave completes (final-verification.md written)
-  |
 Review wave completes (Dev/QA teammates are still alive)
+  |
+Final Verification wave completes (final-verification.md written)
   |
 Lead collects the QA Verify Report + SA/Sn Dev review reports
   |
@@ -146,7 +146,7 @@ Lead runs git status/log for checks 4-6
   |
 Any check FAIL --> route the finding per the table below --> re-verify --> re-check
   |
-All 6 checks PASS --> shutdown_request to every teammate --> summarize for Human with verdict: PASS
+All applicable checks PASS --> shutdown_request to every teammate --> summarize for Human with verdict: PASS
 ```
 
 ### Routing a failed check
@@ -163,7 +163,7 @@ Follow the "Review findings → back to the pair" table in `teammate-loops.md`:
 
 After fixes, re-run **only** the reviewer whose domain failed (a fresh one-shot `opus` reviewer with the same prompt plus the previous findings). Do not re-run the whole review wave for one finding.
 
-**Closing the gate:** all 6 checks PASS → `SendMessage {"type": "shutdown_request"}` to every teammate spawned for this task → summarize for Human. Teammates must not be shut down before the gate passes, because review findings have to reach the same Dev.
+**Closing the gate:** all applicable checks PASS → `SendMessage {"type": "shutdown_request"}` to every teammate spawned for this task → summarize for Human. Teammates must not be shut down before the gate passes, because review findings have to reach the same Dev.
 
 Same domain fails twice on re-check → escalate to Human.
 
@@ -173,7 +173,7 @@ Same domain fails twice on re-check → escalate to Human.
 ## Summary -- {TASK_ID}
 
 **Workflow**: {WF-X} ({description})
-**Validation**: PASS (6/6) | FAIL (X/6)
+**Validation**: {PASS | FAIL} ({X}/{Y} applicable items passed; {N} N/A)
 
 ### What was done
 - Wave 0: {impact summary}

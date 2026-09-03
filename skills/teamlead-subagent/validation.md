@@ -98,7 +98,7 @@ These are checked by Lead reviewing the prompt text. No tool required, but Lead 
 - Wave 0 completed? Prompt must reference `.state/{taskId}/wave-0-impact.md`
 - Wave 1 completed? Prompt must reference the design/AC output file
 - Wave N depends on Wave N-1? Previous wave output must be in the prompt
-- Dev, QA, or reviewer prompt? The Convention Anchor from `research.md` (reference feature + example path per layer) must be inlined -- an agent that has to guess the repo standard will invent one
+- Dev, QA, or reviewer prompt? The Convention Anchor from `research.md` (reference feature + example path per layer) must be inlined when `research.md` exists; otherwise name the reference feature found in Wave 0 -- an agent that has to guess the repo standard will invent one
 - Exception: Wave 0 itself has no prior context requirement
 
 **Item 4 -- Domain clear:**
@@ -133,11 +133,12 @@ These are checked by Lead reviewing the prompt text. No tool required, but Lead 
 
 For feature, behavior change, UX/API/data contract change, architecture-shaping refactor, or infra flow design:
 
-1. Confirm `teamlead-brainstorm.md` was followed and the proposed design was approved.
-2. Confirm `.state/{TASK_ID}/spec.md` exists and passed the Spec Quality Gate in `teamlead-spec.md`.
-3. Confirm the written spec review approval is recorded.
-4. Confirm `.state/{TASK_ID}/plan.md` exists and passed the Plan Quality Gate in `teamlead-plan.md`.
-5. Confirm implementation prompts include the canonical spec path, canonical plan path, assigned task slice, repo boundary, expected output, and verification expectation.
+1. Confirm `.state/{TASK_ID}/research.md` exists for brainstorm-required work (`teamlead-research.md`).
+2. Confirm `teamlead-brainstorm.md` was followed and the proposed design was approved.
+3. Confirm `.state/{TASK_ID}/spec.md` exists and passed the Spec Quality Gate in `teamlead-spec.md`.
+4. Confirm the written spec review approval is recorded.
+5. Confirm `.state/{TASK_ID}/plan.md` exists and passed the Plan Quality Gate in `teamlead-plan.md`.
+6. Confirm implementation prompts include the canonical spec path, canonical plan path, assigned task slice, repo boundary, expected output, and verification expectation.
 
 Fail any item -> do not spawn. Return to the relevant TeamLead local protocol.
 
@@ -155,7 +156,7 @@ After the Final Verification wave and the review wave complete, Lead runs the Va
 | 2 | **Cross-file Consistency** | SA | During review wave | SA checks API contracts, imports, types are consistent across changed files |
 | 3 | **Convention Check** | Sn Dev | During review wave | Sn Dev checks naming, format, response shape against project conventions |
 | 4 | **Monorepo Check** | Lead | After review wave | Lead runs `git status` in each affected repo to verify modified files are in the correct repo |
-| 5 | **State Sync** | Lead | After review wave | Lead runs `git status`, branch/worktree checks, and `git log` when commits are part of the requested delivery mode, and confirms every teammate has been shut down |
+| 5 | **State Sync** | Lead | After review wave | Lead runs `git status`, branch/worktree checks, and `git log` on the task branch, and confirms every teammate has been shut down |
 | 6 | **Commit Plan followed** | Lead | After review wave | Lead runs `git log --oneline` on the task branch: commits match the plan's Commit Plan units, no per-round micro-commits, no `.state/` files committed, nothing pushed unless the Human requested it |
 
 **Key design:** Items 1-3 are done by review wave agents as part of their normal review output. Lead only needs to collect and verify those reports. Items 4-6 are Lead's own checks using git commands.
@@ -163,10 +164,10 @@ After the Final Verification wave and the review wave complete, Lead runs the Va
 ### Validation Gate Flow
 
 ```
-Final Verification wave completes (final-verification.md written)
+Review wave completes (all agents return reports)
   |
   v
-Review wave completes (all agents return reports)
+Final Verification wave completes (final-verification.md written)
   |
   v
 Lead collects reports:
@@ -181,8 +182,8 @@ Lead runs own checks:
     PASS: all modified files are within expected repo boundaries
     FAIL: files modified outside expected repos
   - Item 5: git status + branch/worktree check + git log --oneline -5 when commit/PR delivery was requested
-    PASS: branch/worktree are correct, changed files are understood, dirty files match expected delivery mode, commit state matches the Human-requested delivery mode, and every teammate is accounted for (shut down as the last step below)
-    FAIL: wrong branch/worktree, unexpected dirty files, unexplained changed files, missing commit for requested commit/PR flow, or unexpected commit when the Human did not request one
+    PASS: branch/worktree are correct, changed files are understood, dirty files match expected delivery mode, commits exist per the Commit Plan and nothing was pushed unless requested, and every teammate is accounted for (shut down as the last step below)
+    FAIL: wrong branch/worktree, unexpected dirty files, unexplained changed files, missing commit for requested commit/PR flow
   - Item 6: git log --oneline on the task branch
     PASS: one commit per Commit Plan unit, in the planned order, messages match
           the plan, no .state/ file in any commit, nothing pushed unless requested

@@ -49,7 +49,7 @@ Both run on `fable`. The cross-repo contract defined here is what two independen
 Read `teammate-loops.md` before spawning. Both teammates are spawned **in the same message**.
 
 **Agents:**
-- **`qa-api`** (teammate, `opus`) -- write tests for API-side AC; tests MUST FAIL first, then message `dev-api`
+- **`qa-api`** (teammate, `opus`) -- write tests for API-side AC; tests MUST FAIL first, then message `dev-api` — fast tests seen RED; heavy tests may record `RED assumed: {why}` per the plan's Test Classification
 - **`dev-api`** (teammate, `opus`) -- implement API code so those tests pass
 
 **Loop:** QA RED → Dev implements → QA verifies. PASS → `qa-api` sends its QA Verify Report to the Lead. FAIL → `qa-api` messages `dev-api` directly, max 3 rounds, then escalate to the Lead.

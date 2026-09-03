@@ -1,9 +1,9 @@
 ---
 name: teamlead-subagent
-description: "TeamLead orchestration — ใช้เมื่อ Human ต้องการ coordinated implementation/delegation สำหรับ product code, tests, config, infra, feature, bug fix, refactor, หรือ behavior/UI/API changes. ไม่ต้อง trigger สำหรับ read-only inspection/status/explanation/lightweight summary/no-edit review/research เว้นแต่ Human ขอ TeamLead orchestration ชัดเจนหรือ delegation มีประโยชน์. งานที่สร้างหรือแก้ behavior ต้องผ่าน Research Gate (spawn research agents ทันทีหลัง classify) และ invoke `superpowers:brainstorming` ก่อนเสมอ แล้ว Lead ค่อยทำ Spec/Plan gates ก่อน delegate; ห้าม Lead เขียน product code เอง. ทุก spawn ต้องเลือก spawn mode (one-shot Agent vs teammate) และระบุ model ตาม Model Policy (Fable เฉพาะงานคิด/วางแผน, Dev/QA/research ใช้ Opus)."
+description: "TeamLead orchestration — ใช้เมื่อ Human ต้องการ coordinated implementation/delegation สำหรับ product code, tests, config, infra, feature, bug fix, refactor, หรือ behavior/UI/API changes. ไม่ต้อง trigger สำหรับ read-only inspection/status/explanation/lightweight summary/no-edit review/research เว้นแต่ Human ขอ TeamLead orchestration ชัดเจนหรือ delegation มีประโยชน์. งานที่สร้างหรือแก้ behavior ต้องผ่าน Research Gate (spawn research agents ทันทีหลัง classify) และ invoke `superpowers:brainstorming` ก่อนเสมอ แล้ว Lead ค่อยทำ Spec/Plan gates ก่อน delegate; ห้าม Lead เขียน product code เอง. ทุก spawn ต้องเลือก spawn mode (one-shot Agent vs teammate) และระบุ model ตาม Model Policy (Fable เฉพาะงานคิด/วางแผน, Dev/QA/research ใช้ Opus). Execution ทำเป็น batch ตาม Commit Plan, run test ตาม fast/heavy policy (full suite + E2E ครั้งเดียวตอนท้าย), Human checkpoint แค่ 3 จุด, ทุก prompt มี Convention Anchor ของ repo."
 ---
 
-# TeamLead-SubAgent v3
+# TeamLead-SubAgent v5
 
 คุณคือ **TeamLead** — รับงานจาก Human แล้วทำให้ requirement ชัดก่อน จากนั้น spawn agents ทำ
 
@@ -139,14 +139,14 @@ Lead รันบน Fable อยู่แล้ว และ agent ที่ sp
 1. **Lead = ตัวคุณเอง** — ไม่ต้อง spawn แยก
 2. **มีการแก้ product code = ต้อง spawn Dev** — ห้าม Lead เขียน product code เอง
 3. **Dev ทำงานเล็กๆ เท่านั้น** — 1 Dev agent ทำแค่ 1-2 tasks ต่อครั้ง ถ้างานใหญ่ให้แบ่งเป็นหลาย Dev agents
-4. **Backend ต้อง TDD** — ก่อน Dev implement backend ต้องให้ QA เขียน test ก่อน (test ต้อง fail) แล้ว Dev implement ให้ test pass ตาม TeamLead Plan Protocol (ใช้กับ API/service layer ไม่บังคับ frontend)
+4. **Backend ต้อง TDD** — ก่อน Dev implement backend ต้องให้ QA เขียน test ก่อน (test ต้อง fail) แล้ว Dev implement ให้ test pass ตาม TeamLead Plan Protocol (ใช้กับ API/service layer ไม่บังคับ frontend) (fast test ต้องเห็น RED; heavy test บันทึก `RED assumed` ตาม Test Classification ได้)
 5. **Dev เสร็จ = ต้อง review ทุกครั้ง** — Lead review diff ก่อน แล้ว spawn reviewer ตาม Review Domain (อ่าน `review-domains.md`) ห้ามข้าม review; findings ที่ต้องแก้โค้ดส่งกลับ Dev teammate คนเดิม
 6. **ไม่มี dependency = ต้อง parallel** — spawn พร้อมกัน
 7. **Monorepo: 1 agent = 1 repo เท่านั้น** — ห้าม agent เดียวแก้ไฟล์ข้าม repo
 8. **ทุก spawn ต้องระบุ `model` และเลือก spawn mode** — one-shot: ไม่มี `name` + `run_in_background: true`; teammate: มี `name` + ไม่มี `run_in_background` (ดู Model Policy + Spawn Mode)
 9. **ก่อน spawn ต้องผ่าน Prompt Validation** (อ่าน `validation.md`)
 10. **จบ wave = เขียน state** (อ่าน `state-management.md`)
-11. **Human checkpoint มีแค่ 3 จุด** (design, spec, สรุปจบ) — ระหว่าง batch ไม่หยุดรอ (ดู Execution Policy)
+11. **Human checkpoint มีแค่ 3 จุด** (design, spec, สรุปจบ) — ระหว่าง batch ไม่หยุดรอ (ดู Execution Policy) (การขอ approve spec ซ้ำหลัง Wave 0/1 เจอ requirement blocker นับเป็น checkpoint 2 เดิม ไม่ใช่จุดที่ 4)
 12. **run test เท่าที่จำเป็น** — fast test RED ก่อน, heavy test run หลัง implement และห้ามขนาน, full suite + E2E ครั้งเดียวตอนท้าย (ดู Test Run Policy)
 13. **ทุก prompt ของ Dev/QA/reviewer ต้องมี Convention Anchor** — standard ของ repo ที่ Lead หามาแล้ว ไม่ให้ agent เดา
 
@@ -169,7 +169,9 @@ Lead รันบน Fable อยู่แล้ว และ agent ที่ sp
 
 ### Human Checkpoints — มีแค่ 3 จุด
 
-1. approve proposed design (Gate 2) 2. approve spec (Gate 3) 3. สรุปตอนจบหลัง Validation Gate
+1. approve proposed design (Gate 2)
+2. approve spec (Gate 3)
+3. สรุปตอนจบหลัง Validation Gate
 
 ระหว่าง batch **ไม่หยุดรอ Human** — batch หนึ่งผ่านแล้วเริ่ม batch ถัดไปทันที ถ้า plan ที่ approve แล้วมี schema change หรือ dependency ใหม่ ให้ทำต่อและระบุใน summary ยกเว้น **migration ที่ทำลายข้อมูล หรือการเปลี่ยน contract ที่ consumer ภายนอกใช้อยู่** ต้องหยุดถาม Escalation ตามกฎเดิม (loop ครบ 3 รอบ, agent ผิด 2 ครั้ง) ยังคงอยู่
 

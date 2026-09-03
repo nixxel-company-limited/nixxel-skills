@@ -11,10 +11,13 @@ Persistent state for TeamLead-SubAgent. Loaded at: conversation start (resume ch
 ├── teamlead.json              <- state tracker (1 active task)
 └── THUN-XX/                   <- folder per task
     ├── research.md               <- merged Research Report (Research Gate, before brainstorm)
+    ├── spec.md                   <- canonical spec (after Human approval)
+    ├── plan.md                   <- canonical plan
     ├── wave-0-impact.md          <- merged Impact Report
     ├── wave-1-design.md          <- AC + architecture
     ├── wave-2-implementation.md  <- QA Verify Report + Dev changed files
     ├── wave-3-review.md          <- merged review reports
+    ├── final-verification.md     <- Final Verification wave results
     └── ...                       <- wave-N-{label}.md
 ```
 
@@ -37,7 +40,7 @@ File: `.state/teamlead.json`
   "workflow": "WF-1",
   "branch": "feature/THUN-48-product-filter",
   "currentWave": 2,
-  "totalWaves": 5,
+  "totalWaves": 4,
   "batchOrder": "1,2,3",
   "currentBatch": "2",
   "commits": [
@@ -69,11 +72,6 @@ File: `.state/teamlead.json`
       "outputFile": null
     },
     "3": {
-      "status": "pending",
-      "agents": [],
-      "outputFile": null
-    },
-    "4": {
       "status": "pending",
       "agents": [],
       "outputFile": null
@@ -154,7 +152,7 @@ Never write directly to `teamlead.json` -- a crash mid-write would corrupt the f
 When a wave completes, Lead summarizes all agent outputs into a single markdown file:
 
 - File path: `.state/{taskId}/wave-{N}-{label}.md`
-- Label convention: `impact`, `design`, `implementation`, `review`, plus `root-cause` for WF-3
+- Label convention: `impact`, `design`, `implementation`, `review`, plus `root-cause` for WF-3, `fix` (WF-3), `api` / `frontend` (WF-5), `final-verification`
 - Content: Lead-written summary combining all agent outputs for that wave
 - This file becomes context input for subsequent waves
 
